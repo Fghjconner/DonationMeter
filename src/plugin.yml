@@ -1,0 +1,7 @@
+name: DonationMeter
+main: fghjconner.DonationMeter.DonationMeter
+version: 1.0
+commands:
+    DonationMeter:
+        description: Displays donation status
+        usage: /Donations help for commands
