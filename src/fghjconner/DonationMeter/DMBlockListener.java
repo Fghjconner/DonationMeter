@@ -12,11 +12,8 @@ import org.bukkit.material.Sign;
 public class DMBlockListener extends BlockListener
 {
 	
-	private DonationMeter plugin;
-	
 	public DMBlockListener (DonationMeter plugin)
 	{
-		this.plugin = plugin;
 	}
 	
 	public void onBlockBreak(BlockBreakEvent event)
