@@ -123,7 +123,6 @@ public class DonationMeter extends JavaPlugin
 			showTime = prop.getProperty("displayTime").equals("true");
 			vipName = prop.getProperty("VIPname");
 			loadVIPs(prop.getProperty("VIPs"));
-			System.out.println(currency);
 			in.close();
 		}
 		catch (IOException e)

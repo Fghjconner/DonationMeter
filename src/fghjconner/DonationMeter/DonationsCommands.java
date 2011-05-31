@@ -129,7 +129,6 @@ public class DonationsCommands implements CommandExecutor
 		args[0]=args[0].toLowerCase();
 		if ((args[0].equals("vips") || args[0].equals("vip") || args[0].equals("addvip") || args[0].equals(DonationMeter.vipName)) && advancedPermissions)
 		{
-			System.out.println(args[1]);
 			if (!DonationMeter.vips.contains(args[1]))
 			{
 				DonationMeter.vips.add(args[1]);
@@ -217,8 +216,6 @@ public class DonationsCommands implements CommandExecutor
 		if (!plugin.showTime)
 			return;
 		Calendar date = Calendar.getInstance();
-		System.out.println(date.get(Calendar.DAY_OF_MONTH));
-		System.out.println(getMonthLength(date));
 		int daysTill = getMonthLength(date)-date.get(Calendar.DAY_OF_MONTH);
 		int hoursTill = 24-date.get(Calendar.HOUR_OF_DAY);
 		int minutesTill = 60-date.get(Calendar.MINUTE);
