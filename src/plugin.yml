@@ -5,3 +5,6 @@ commands:
     DonationMeter:
         description: Displays donation status
         usage: /Donations help for commands
+    Donations:
+        description: Displays donation status
+        usage: /Donations help for commands

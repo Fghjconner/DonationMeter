@@ -1,25 +1,31 @@
 package fghjconner.DonationMeter;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 
 import org.bukkit.DyeColor;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
-import org.bukkit.material.Wool;
 
-public class VisualMeter
+public class VisualMeter implements Serializable
 {
-	private ArrayList<Location> locList;
-	private int maxX,minX,maxY,minY,maxZ,minZ,distX,distY,distZ;
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6192931342332060225L;
+	private ArrayList<SimpleLoc> locList;
+	private double maxX,minX,maxY,minY,maxZ,minZ,distX,distY,distZ;
 	private byte greatestDir;
 	private boolean reversed;
-	private byte hasColor = DyeColor.GREEN.getData(),neededColor = DyeColor.WHITE.getData();
+	private byte hasColor = DyeColor.GREEN.getData(),neededColor = DyeColor.WHITE.getData(),surplusColor = DyeColor.BLUE.getData();
 	
 	public VisualMeter(Block source, boolean backwards)
 	{
+		maxX = maxY = maxZ = Double.MIN_VALUE;
+		minX = minY = minZ = Double.MAX_VALUE;
 		reversed = backwards;
-		addBlock(source.getLocation());
+		locList = new ArrayList<SimpleLoc>();
+		addBlock(SimpleLoc.simplify(source.getLocation()));
 		distX=maxX-minX;
 		distY=maxY-minY;
 		distZ=maxZ-minZ;
@@ -38,16 +44,17 @@ public class VisualMeter
 			//if Y is greatest
 			greatestDir=1;
 		}
+		update();
 	}
 	
-	private void addBlock(Location loc)
+	private void addBlock(SimpleLoc loc)
 	{
 		if (locList.contains(loc) || !loc.getBlock().getType().equals(Material.WOOL))
 		{
 			return;
 		}
 		locList.add(loc);
-		int x=loc.getBlockX(),y=loc.getBlockY(),z=loc.getBlockZ();
+		int x=loc.getX(),y=loc.getY(),z=loc.getZ();
 		if (x>maxX)
 			maxX=x;
 		if (x<minX)
@@ -60,12 +67,12 @@ public class VisualMeter
 			maxZ=z;
 		if (z<minZ)
 			minZ=z;
-		addBlock(new Location(loc.getWorld(),loc.getX()+1,loc.getY(),loc.getZ()));
-		addBlock(new Location(loc.getWorld(),loc.getX()-1,loc.getY(),loc.getZ()));
-		addBlock(new Location(loc.getWorld(),loc.getX(),loc.getY()+1,loc.getZ()));
-		addBlock(new Location(loc.getWorld(),loc.getX(),loc.getY()-1,loc.getZ()));
-		addBlock(new Location(loc.getWorld(),loc.getX(),loc.getY(),loc.getZ()+1));
-		addBlock(new Location(loc.getWorld(),loc.getX(),loc.getY(),loc.getZ()-1));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX()+1,loc.getY(),loc.getZ()));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX()-1,loc.getY(),loc.getZ()));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX(),loc.getY()+1,loc.getZ()));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX(),loc.getY()-1,loc.getZ()));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX(),loc.getY(),loc.getZ()+1));
+		addBlock(new SimpleLoc(loc.getWorld(),loc.getX(),loc.getY(),loc.getZ()-1));
 	}
 
 	public void update()
@@ -80,57 +87,148 @@ public class VisualMeter
 	
 	private void setByX()
 	{
-		int cutoff;
+		double cutoff, surplusCutoff;
 		if (!reversed)
-			cutoff = minX + (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distX;
-		else
-			cutoff = maxX - (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distX;
-		for (Location loc: locList)
 		{
-			if ((loc.getBlockX()<cutoff) ^ reversed)
-				((Wool)loc.getBlock()).setData(hasColor);
+			cutoff = (minX + ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distX);
+			surplusCutoff =  (minX + (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distX);
+		}
+		else
+		{
+			cutoff = (maxX - ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distX);
+			surplusCutoff = (maxX - (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distX);
+		}
+		for (SimpleLoc loc: locList)
+		{
+			if (!reversed)
+			{
+				if ((loc.getX()<=cutoff && cutoff>minX))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getX()<=surplusCutoff && surplusCutoff>minX))
+					loc.getBlock().setData(surplusColor);
+			}
 			else
-				((Wool)loc.getBlock()).setData(neededColor);
+			{
+				if ((loc.getX()>=cutoff && cutoff<maxX))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getX()>=surplusCutoff && surplusCutoff<maxX))
+					loc.getBlock().setData(surplusColor);
+			}
 		}
 	}
 	
 	private void setByY()
 	{
-		int cutoff;
+		double cutoff, surplusCutoff;
 		if (!reversed)
-			cutoff = minY + (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distY;
-		else
-			cutoff = maxY - (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distY;
-		for (Location loc: locList)
 		{
-			if ((loc.getBlockY()<cutoff) ^ reversed)
-				((Wool)loc.getBlock()).setData(hasColor);
+			cutoff = (minY + ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distY);
+			surplusCutoff =  (minY + (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distY);
+		}
+		else
+		{
+			cutoff = (maxY - ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distY);
+			surplusCutoff = (maxY - (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distY);
+		}
+		for (SimpleLoc loc: locList)
+		{
+			if (!reversed)
+			{
+				if ((loc.getY()<=cutoff && cutoff>minY))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getY()<=surplusCutoff && surplusCutoff>minY))
+					loc.getBlock().setData(surplusColor);
+			}
 			else
-				((Wool)loc.getBlock()).setData(neededColor);
+			{
+				if ((loc.getY()>=cutoff && cutoff<maxY))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getY()>=surplusCutoff && surplusCutoff<maxY))
+					loc.getBlock().setData(surplusColor);
+			}
 		}
 	}
 	
 	private void setByZ()
 	{
-		int cutoff;
+		double cutoff, surplusCutoff;
 		if (!reversed)
-			cutoff = minZ + (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distZ;
-		else
-			cutoff = maxZ - (DonationMeter.currentDonations/DonationMeter.requiredDonations)/distZ;
-		for (Location loc: locList)
 		{
-			if ((loc.getBlockZ()<cutoff) ^ reversed)
-				((Wool)loc.getBlock()).setData(hasColor);
-			else
-				((Wool)loc.getBlock()).setData(neededColor);
+			cutoff = (minZ + ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distZ);
+			surplusCutoff =  (minZ + (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distZ);
 		}
+		else
+		{
+			cutoff = (maxZ - ((double)DonationMeter.currentDonations/DonationMeter.requiredDonations)*distZ);
+			surplusCutoff = (maxZ - (((double)DonationMeter.currentDonations - DonationMeter.requiredDonations)/DonationMeter.requiredDonations)*distZ);
+		}
+		for (SimpleLoc loc: locList)
+		{
+			if (!reversed)
+			{
+				if ((loc.getZ()<=cutoff && cutoff>minZ))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getZ()<=surplusCutoff && surplusCutoff>minZ))
+					loc.getBlock().setData(surplusColor);
+			}
+			else
+			{
+				if ((loc.getZ()>=cutoff && cutoff<maxZ))
+					loc.getBlock().setData(hasColor);
+				else
+					loc.getBlock().setData(neededColor);
+				
+				if ((loc.getZ()>=surplusCutoff && surplusCutoff<maxZ))
+					loc.getBlock().setData(surplusColor);
+			}
+		}
+	}
+	
+	public void setDir(int dir)
+	{
+		greatestDir=(byte)dir;
+	}
+	
+	public void setHasColor(byte has)
+	{
+		hasColor=has;
+	}
+	
+	public void setNeedColor(byte needed)
+	{
+		neededColor=needed;
+	}
+	
+	public void setSurplusColor(byte surplus)
+	{
+		surplusColor=surplus;
 	}
 	
 	public void destroy()
 	{
-		for (Location loc: locList)
+		for (SimpleLoc loc: locList)
 		{
-			((Wool)loc.getBlock()).setData((byte) 0);
+			(loc.getBlock()).setData((byte) 0);
 		}
+	}
+	
+	public boolean has(SimpleLoc loc)
+	{
+		return locList.contains(loc);
 	}
 }

@@ -1,46 +1,154 @@
 package fghjconner.DonationMeter;
 
 
-import org.bukkit.Location;
+import java.util.ArrayList;
+
+import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockBurnEvent;
 import org.bukkit.event.block.BlockListener;
 import org.bukkit.event.block.SignChangeEvent;
 import org.bukkit.material.Sign;
 
 public class DMBlockListener extends BlockListener
 {
-	
+	private DonationMeter plugin;
 	public DMBlockListener (DonationMeter plugin)
 	{
+		this.plugin = plugin;
 	}
-	
+
 	public void onBlockBreak(BlockBreakEvent event)
 	{
-		Location loc = event.getBlock().getLocation();
-		if (DonationMeter.meterList.containsKey(loc))
+		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
+		ArrayList<VisualMeter> affected = new ArrayList<VisualMeter>(); 
+		for (VisualMeter meter:DonationMeter.meterList.values())
 		{
-			DonationMeter.meterList.get(loc).destroy();
-			DonationMeter.meterList.remove(loc);
+			if (meter.has(loc))
+			{
+				affected.add(meter);
+			}
+		}
+		for (VisualMeter marked:affected)
+		{
+			marked.destroy();
+			DonationMeter.meterList.values().remove(marked);
 		}
 	}
-	
+
+	public void onBlockBurn(BlockBurnEvent event)
+	{
+		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
+		ArrayList<VisualMeter> affected = new ArrayList<VisualMeter>(); 
+		for (VisualMeter meter:DonationMeter.meterList.values())
+		{
+			if (meter.has(loc))
+			{
+				affected.add(meter);
+			}
+		}
+		for (VisualMeter marked:affected)
+		{
+			marked.destroy();
+			DonationMeter.meterList.values().remove(marked);
+		}
+	}
+
 	public void onSignChange(SignChangeEvent blockEvent)
 	{
 		Boolean reverse = false;
 		SignChangeEvent event = (SignChangeEvent)blockEvent;
 		Block sign = event.getBlock();
-		Block base = sign.getFace(((Sign) sign.getState()).getAttachedFace());
-		if (DonationMeter.permissionHandler.has(event.getPlayer(), "DonationMeter.admin") || !event.getLine(0).equals("Donation Meter") || !base.getType().equals(Material.WOOL))
+		Block base = sign.getFace(((Sign)sign.getState().getData()).getAttachedFace());
+		if (!DonationMeter.permissionHandler.has(event.getPlayer(), "DonationMeter.admin") || !base.getType().equals(Material.WOOL) || isMeter(base))
+			return;
+		if (!event.getLine(0).toLowerCase().contains("dmeter") && !event.getLine(0).toLowerCase().contains("donations"))
 		{
-			if (!event.getLine(0).equals("Donation Meter -r"))
-				return;
-			reverse = true;
+			return;
 		}
-		DonationMeter.meterList.put(sign.getLocation(), new VisualMeter(base,reverse));
-		DonationMeter.updateMeters();
+		if (event.getLine(0).toLowerCase().contains("-r"))
+			reverse=true;
+		VisualMeter meter = new VisualMeter(base,reverse);
+		DonationMeter.meterList.put(SimpleLoc.simplify(sign.getLocation()), meter);
+		if (event.getLine(0).toLowerCase().contains("-x"))
+			meter.setDir(0);
+		if (event.getLine(0).toLowerCase().contains("-y"))
+			meter.setDir(1);
+		if (event.getLine(0).toLowerCase().contains("-z"))
+			meter.setDir(2);
+		handleLine(event.getLine(1),meter);
+		handleLine(event.getLine(2),meter);
+		handleLine(event.getLine(3),meter);
+		plugin.updateMeters();
 	}
 	
+	public void handleLine(String line,VisualMeter meter)
+	{
+		line=line.toLowerCase();
+		if (line.contains("has"))
+			setColor(line,meter,2);
+		else if (line.contains("needs") || line.contains("need"))
+			setColor(line,meter,1);
+		else if (line.contains("surplus") || line.contains("extra"))
+			setColor(line,meter,3);
+	}
+	
+	public void setColor(String arg, VisualMeter meter,int mode)
+	{
+		byte setColor;
+		if (arg.contains("black"))
+			setColor = (DyeColor.BLACK.getData());
+		else if (arg.contains("red"))
+			setColor = (DyeColor.RED.getData());
+		else if (arg.contains("dark green") || arg.contains("green"))
+			setColor = (DyeColor.GREEN.getData());
+		else if (arg.contains("brown"))
+			setColor = (DyeColor.BROWN.getData());
+		else if (arg.contains("blue"))
+			setColor = (DyeColor.BLUE.getData());
+		else if (arg.contains("purple"))
+			setColor = (DyeColor.PURPLE.getData());
+		else if (arg.contains("cyan"))
+			setColor = (DyeColor.CYAN.getData());
+		else if (arg.contains("light gray") || arg.contains("silver"))
+			setColor = (DyeColor.SILVER.getData());
+		else if (arg.contains("gray"))
+			setColor = (DyeColor.GRAY.getData());
+		else if (arg.contains("pink"))
+			setColor = (DyeColor.PINK.getData());
+		else if (arg.contains("light green") || arg.contains("lime"))
+			setColor = (DyeColor.LIME.getData());
+		else if (arg.contains("yellow"))
+			setColor = (DyeColor.YELLOW.getData());
+		else if (arg.contains("light blue"))
+			setColor = (DyeColor.LIGHT_BLUE.getData());
+		else if (arg.contains("magenta"))
+			setColor = (DyeColor.MAGENTA.getData());
+		else if (arg.contains("orange"))
+			setColor = (DyeColor.ORANGE.getData());
+		else if (arg.contains("white"))
+			setColor = (DyeColor.WHITE.getData());
+		else
+			return;
+		
+		switch (mode)
+		{
+		case 1: meter.setNeedColor(setColor);	break;
+		case 2: meter.setHasColor(setColor);	break;
+		case 3: meter.setSurplusColor(setColor);	break;
+		}
+	}
 
+	private boolean isMeter(Block base)
+	{
+		boolean out = false;
+		for (VisualMeter meter:DonationMeter.meterList.values())
+		{
+			if (meter.has(SimpleLoc.simplify(base.getLocation())))
+				out = true;
+		}
+		return out;
+	}
 }
