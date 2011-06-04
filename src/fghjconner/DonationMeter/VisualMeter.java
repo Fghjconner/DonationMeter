@@ -21,7 +21,7 @@ public class VisualMeter implements Serializable
 	
 	public VisualMeter(Block source, boolean backwards)
 	{
-		maxX = maxY = maxZ = Double.MIN_VALUE;
+		maxX = maxY = maxZ = -Double.MAX_VALUE;
 		minX = minY = minZ = Double.MAX_VALUE;
 		reversed = backwards;
 		locList = new ArrayList<SimpleLoc>();
