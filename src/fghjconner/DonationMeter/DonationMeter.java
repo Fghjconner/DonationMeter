@@ -7,7 +7,6 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Properties;
 import java.util.Scanner;
@@ -29,20 +28,22 @@ public class DonationMeter extends JavaPlugin
 {
 	private final HashMap<Player, Boolean> debugees = new HashMap<Player, Boolean>();
 	private final DMBlockListener BlockListener = new DMBlockListener(this);
-	public static PermissionHandler permissionHandler;
+	private final DMEntityListener EntityListener = new DMEntityListener(this);
+	protected static PermissionHandler permissionHandler;
 	private Logger log = Logger.getLogger("Minecraft");
-	public static HashMap<SimpleLoc, VisualMeter> meterList;
-	public static ArrayList<String> vips;
-	public static int requiredDonations, currentDonations;
+	protected HashMap<SimpleLoc, WoolMeter> meterList;
+	protected HashMap<String, Short> notificationList;
+	protected ArrayList<String> vips;
+	public static short requiredDonations, currentDonations;
 	public static String currency, vipName;
-	public boolean showTime;
-	protected static Calendar date;
+	public boolean showTime, explosionVulnerable;
 	protected static Server server;
 
 	//file IO stuff
 	static String mainDirectory = "plugins/DonationMeter"; //sets the main directory for easy reference
 	static File Meters = new File(mainDirectory + File.separator + "Meters.dat");
 	static File Donations = new File(mainDirectory + File.separator + "Donations.dat");
+	static File Notifications = new File(mainDirectory + File.separator + "Notifications.dat");
 	static Properties prop = new Properties(); //creates a new properties file
 	
 	public void onDisable()
@@ -55,14 +56,15 @@ public class DonationMeter extends JavaPlugin
 	public void onEnable()
 	{
 		server = getServer();
-		date = Calendar.getInstance();
 		setupPermissions();
 		PluginManager pm = this.getServer().getPluginManager();
 
+		//registers main events
 		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Normal, this);
 		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Normal, this);
 
+		//registers command
 		PluginCommand command = getCommand("DonationMeter");
 		PluginCommand commandAlias = getCommand("Donations");
 
@@ -78,17 +80,21 @@ public class DonationMeter extends JavaPlugin
 		if(!Meters.exists())
 			createMetersFile();
 		else
-		{
 			loadMeters();
-		}
 
 		if(!Donations.exists())
-		{
 			createDonationsFile();
-		} else
-		{
+		else
 			loadDonations();
-		}
+		
+		if(!Notifications.exists())
+			createNotificationsFile();
+		else
+			loadNotifications();
+		
+		//registers entity explode if explosion vulnerable is true
+		if (explosionVulnerable)
+			pm.registerEvent(Event.Type.ENTITY_EXPLODE, EntityListener, Event.Priority.Normal, this);
 	}
 
 	@SuppressWarnings("unchecked")
@@ -98,7 +104,27 @@ public class DonationMeter extends JavaPlugin
 		{
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(mainDirectory + File.separator + "Meters.dat"));
 			Object result = ois.readObject();
-			meterList = (HashMap<SimpleLoc,VisualMeter>)result;
+			meterList = (HashMap<SimpleLoc,WoolMeter>)result;
+			ois.close();
+		}
+		catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		catch (ClassNotFoundException e)
+		{
+			e.printStackTrace();
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	private void loadNotifications()
+	{
+		try
+		{
+			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(mainDirectory + File.separator + "Notifications.dat"));
+			Object result = ois.readObject();
+			notificationList = (HashMap<String, Short>)result;
 			ois.close();
 		}
 		catch (IOException e)
@@ -117,11 +143,12 @@ public class DonationMeter extends JavaPlugin
 		{
 			FileInputStream in = new FileInputStream(Donations);
 			prop.load(in);
-			requiredDonations = Integer.parseInt(prop.getProperty("requiredDonations"));
-			currentDonations = Integer.parseInt(prop.getProperty("currentDonations"));
+			requiredDonations = Short.parseShort(prop.getProperty("requiredDonations"));
+			currentDonations = Short.parseShort(prop.getProperty("currentDonations"));
 			currency = prop.getProperty("currency");
 			showTime = prop.getProperty("displayTime").equals("true");
 			vipName = prop.getProperty("VIPname");
+			explosionVulnerable = Boolean.parseBoolean(prop.getProperty("explosionVulnerable"));
 			loadVIPs(prop.getProperty("VIPs"));
 			in.close();
 		}
@@ -142,13 +169,29 @@ public class DonationMeter extends JavaPlugin
 		}
 	}
 
+	private void createNotificationsFile()
+	{
+		try
+		{
+			Notifications.createNewFile();
+			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Notifications.dat"));
+			oos.writeObject(new HashMap<String, Short>());
+			oos.flush();
+			oos.close();
+		} catch (IOException e)
+		{
+			e.printStackTrace();
+		}
+		loadNotifications();
+	}
+	
 	private void createMetersFile()
 	{
 		try
 		{
 			Meters.createNewFile();
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Meters.dat"));
-			oos.writeObject(new HashMap<SimpleLoc, VisualMeter>());
+			oos.writeObject(new HashMap<SimpleLoc, WoolMeter>());
 			oos.flush();
 			oos.close();
 		} catch (IOException e)
@@ -170,12 +213,13 @@ public class DonationMeter extends JavaPlugin
 			prop.put("displayTime", "true");
 			prop.put("VIPname", "VIP");
 			prop.put("VIPs", "");
+			prop.put("explosionVulnerable", "false");
 			prop.store(out,"DonationMeters Config");
 			out.flush();
 			out.close();
 		} catch (IOException e)
 		{
-			e.printStackTrace(); //explained below.
+			e.printStackTrace();
 		}
 		loadDonations();
 	}
@@ -185,12 +229,13 @@ public class DonationMeter extends JavaPlugin
 		try
 		{
 			FileOutputStream out = new FileOutputStream(Donations);
-			prop.put("requiredDonations", Integer.toString(requiredDonations));
-			prop.put("currentDonations", Integer.toString(currentDonations));
+			prop.put("requiredDonations", Short.toString(requiredDonations));
+			prop.put("currentDonations", Short.toString(currentDonations));
 			prop.put("currency", currency);
 			prop.put("displayTime", Boolean.toString(showTime));
 			prop.put("VIPname", vipName);
 			prop.put("VIPs", vipsToString());
+			prop.put("explosionVulnerable", Boolean.toString(explosionVulnerable));
 			prop.store(out, "DonationMeters Config");
 			out.flush();
 			out.close();
@@ -221,6 +266,18 @@ public class DonationMeter extends JavaPlugin
 			e.printStackTrace();
 		}
 	}
+	
+	private void saveNotificationsFile()
+	{
+		try{
+			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Notifications.dat"));
+			oos.writeObject(notificationList);
+			oos.flush();
+			oos.close();
+		}catch(Exception e){
+			e.printStackTrace();
+		}
+	}
 
 	public boolean isDebugging(final Player player)
 	{
@@ -241,18 +298,21 @@ public class DonationMeter extends JavaPlugin
 		Plugin permissionsPlugin = this.getServer().getPluginManager().getPlugin("Permissions");
 
 		if (DonationMeter.permissionHandler == null) {
-			if (permissionsPlugin != null) {
+			if (permissionsPlugin != null)
+			{
 				DonationMeter.permissionHandler = ((Permissions) permissionsPlugin).getHandler();
-			} else {
+			} else
+			{
 				log.info("Permission system not detected, defaulting to OP");
+				//DonationMeter.permissionHandler = new OPPermissions(); 
 			}
 		}
 	}
 
-	//updates visual meters
+	//updates wool meters
 	public void updateMeters()
 	{
-		for (VisualMeter meter: meterList.values())
+		for (WoolMeter meter: meterList.values())
 		{
 			meter.update();
 		}
@@ -263,5 +323,14 @@ public class DonationMeter extends JavaPlugin
 	{
 		saveDonationsFile();
 		saveMetersFile();
+		saveNotificationsFile();
+	}
+
+	public void addNotification(short amount,String player)
+	{
+		if (notificationList.containsKey(player))
+			notificationList.put(player, (short)(notificationList.get(player)+amount));
+		else
+			notificationList.put(player, amount);
 	}
 }

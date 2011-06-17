@@ -2,24 +2,25 @@ package fghjconner.DonationMeter;
 
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Collection;
 
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 
-public class VisualMeter implements Serializable
+public class WoolMeter implements Serializable
 {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -6192931342332060225L;
+	private static final long serialVersionUID = -2473439837674633403L;
 	private ArrayList<SimpleLoc> locList;
 	private double maxX,minX,maxY,minY,maxZ,minZ,distX,distY,distZ;
 	private byte greatestDir;
 	private boolean reversed;
 	private byte hasColor = DyeColor.GREEN.getData(),neededColor = DyeColor.WHITE.getData(),surplusColor = DyeColor.BLUE.getData();
 	
-	public VisualMeter(Block source, boolean backwards)
+	public WoolMeter(Block source, boolean backwards)
 	{
 		maxX = maxY = maxZ = -Double.MAX_VALUE;
 		minX = minY = minZ = Double.MAX_VALUE;
@@ -199,7 +200,7 @@ public class VisualMeter implements Serializable
 		}
 	}
 	
-	public void setDir(int dir)
+	public void setDir(byte dir)
 	{
 		greatestDir=(byte)dir;
 	}
@@ -230,5 +231,13 @@ public class VisualMeter implements Serializable
 	public boolean has(SimpleLoc loc)
 	{
 		return locList.contains(loc);
+	}
+	
+	public boolean has(Collection<Block> blockList)
+	{
+		for (Block block: blockList)
+			if (has(SimpleLoc.simplify(block.getLocation())))
+				return true;
+		return false;
 	}
 }

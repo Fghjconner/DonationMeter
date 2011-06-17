@@ -11,7 +11,7 @@ public class SimpleLoc implements Serializable
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -8808615586012957085L;
+	private static final long serialVersionUID = -2835528180226548355L;
 	private String world;
 	private int xPos,yPos,zPos;
 	public SimpleLoc(World worldIn, int x, int y, int z)

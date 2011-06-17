@@ -3,6 +3,7 @@ package fghjconner.DonationMeter;
 
 import java.util.ArrayList;
 
+import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
@@ -23,43 +24,44 @@ public class DMBlockListener extends BlockListener
 	public void onBlockBreak(BlockBreakEvent event)
 	{
 		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
-		ArrayList<VisualMeter> affected = new ArrayList<VisualMeter>(); 
-		for (VisualMeter meter:DonationMeter.meterList.values())
+		ArrayList<WoolMeter> affected = new ArrayList<WoolMeter>(); 
+		for (WoolMeter meter:plugin.meterList.values())
 		{
 			if (meter.has(loc))
 			{
 				affected.add(meter);
 			}
 		}
-		for (VisualMeter marked:affected)
+		for (WoolMeter marked:affected)
 		{
 			marked.destroy();
-			DonationMeter.meterList.values().remove(marked);
+			plugin.meterList.values().remove(marked);
+			event.getPlayer().sendMessage(ChatColor.RED.toString()+"Meter destroyed");
 		}
 	}
 
 	public void onBlockBurn(BlockBurnEvent event)
 	{
 		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
-		ArrayList<VisualMeter> affected = new ArrayList<VisualMeter>(); 
-		for (VisualMeter meter:DonationMeter.meterList.values())
+		ArrayList<WoolMeter> affected = new ArrayList<WoolMeter>(); 
+		for (WoolMeter meter:plugin.meterList.values())
 		{
 			if (meter.has(loc))
 			{
 				affected.add(meter);
 			}
 		}
-		for (VisualMeter marked:affected)
+		for (WoolMeter marked:affected)
 		{
 			marked.destroy();
-			DonationMeter.meterList.values().remove(marked);
+			plugin.meterList.values().remove(marked);
 		}
 	}
 
 	public void onSignChange(SignChangeEvent blockEvent)
 	{
 		Boolean reverse = false;
-		SignChangeEvent event = (SignChangeEvent)blockEvent;
+		SignChangeEvent event = blockEvent;
 		Block sign = event.getBlock();
 		Block base = sign.getFace(((Sign)sign.getState().getData()).getAttachedFace());
 		if (!DonationMeter.permissionHandler.has(event.getPlayer(), "DonationMeter.admin") || !base.getType().equals(Material.WOOL) || isMeter(base))
@@ -70,32 +72,33 @@ public class DMBlockListener extends BlockListener
 		}
 		if (event.getLine(0).toLowerCase().contains("-r"))
 			reverse=true;
-		VisualMeter meter = new VisualMeter(base,reverse);
-		DonationMeter.meterList.put(SimpleLoc.simplify(sign.getLocation()), meter);
+		WoolMeter meter = new WoolMeter(base,reverse);
+		plugin.meterList.put(SimpleLoc.simplify(sign.getLocation()), meter);
 		if (event.getLine(0).toLowerCase().contains("-x"))
-			meter.setDir(0);
+			meter.setDir((byte)0);
 		if (event.getLine(0).toLowerCase().contains("-y"))
-			meter.setDir(1);
+			meter.setDir((byte)1);
 		if (event.getLine(0).toLowerCase().contains("-z"))
-			meter.setDir(2);
+			meter.setDir((byte)2);
 		handleLine(event.getLine(1),meter);
 		handleLine(event.getLine(2),meter);
 		handleLine(event.getLine(3),meter);
+		blockEvent.getPlayer().sendMessage(ChatColor.GREEN.toString()+"Meter Created!");
 		plugin.updateMeters();
 	}
 	
-	public void handleLine(String line,VisualMeter meter)
+	public void handleLine(String line,WoolMeter meter)
 	{
 		line=line.toLowerCase();
 		if (line.contains("has"))
-			setColor(line,meter,2);
+			setColor(line,meter,(byte) 2);
 		else if (line.contains("needs") || line.contains("need"))
-			setColor(line,meter,1);
+			setColor(line,meter,(byte)1);
 		else if (line.contains("surplus") || line.contains("extra"))
-			setColor(line,meter,3);
+			setColor(line,meter,(byte)3);
 	}
 	
-	public void setColor(String arg, VisualMeter meter,int mode)
+	public void setColor(String arg, WoolMeter meter,byte mode)
 	{
 		byte setColor;
 		if (arg.contains("black"))
@@ -143,12 +146,11 @@ public class DMBlockListener extends BlockListener
 
 	private boolean isMeter(Block base)
 	{
-		boolean out = false;
-		for (VisualMeter meter:DonationMeter.meterList.values())
+		for (WoolMeter meter:plugin.meterList.values())
 		{
 			if (meter.has(SimpleLoc.simplify(base.getLocation())))
-				out = true;
+				return true;
 		}
-		return out;
+		return false;
 	}
 }
