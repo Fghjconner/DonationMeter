@@ -80,7 +80,8 @@ public class DonationsCommands implements CommandExecutor
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter addDonation <amount>   "+ChatColor.DARK_GREEN.toString()+"*Adds donation to total");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter setGoal <amount>   "+ChatColor.DARK_GREEN.toString()+"*Sets the monthly goal");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter setCurrency <name>   "+ChatColor.DARK_GREEN.toString()+"*Sets currency used");
-				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter meterHelp   "+ChatColor.DARK_GREEN.toString()+"*Displays meter help");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter woolMeterHelp   "+ChatColor.DARK_GREEN.toString()+"*Displays wool meter help");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter signMeterHelp   "+ChatColor.DARK_GREEN.toString()+"*Displays sign meter help");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter pay   "+ChatColor.DARK_GREEN.toString()+"*Pays goal");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter save   "+ChatColor.DARK_GREEN.toString()+"*Saves data");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter time [on/off]   "+ChatColor.DARK_GREEN.toString()+"*Toggles time display");
@@ -92,13 +93,13 @@ public class DonationsCommands implements CommandExecutor
 			return true;
 		}
 		
-		if (arg.equals("meterhelp") && advancedPermissions)
+		if (arg.equals("woolmeterhelp") && advancedPermissions)
 		{
-			sendMessage(sender, ChatColor.BLUE.toString()+"-----------Creating Meters-----------");
-			sendMessage(sender, ChatColor.BLUE.toString()+"------------------------------------");
-			sendMessage(sender, "Meters are built of adjacent wool blocks");
+			sendMessage(sender, ChatColor.BLUE.toString()+"-----------Creating Wool Meters-----------");
+			sendMessage(sender, ChatColor.BLUE.toString()+"-----------------------------------------");
+			sendMessage(sender, "Wool Meters are built of adjacent wool blocks");
 			sendMessage(sender, "Placing a sign starting \"Donations\" onto wool forms a meter");
-			sendMessage(sender, "Meters visually display your donation status \"filling\"");
+			sendMessage(sender, "Meters visually display your donation status by \"filling\"");
 			sendMessage(sender, "The meter starts the \"empty\" color");
 			sendMessage(sender, "The meter then fills with the \"has\" color");
 			sendMessage(sender, "Once full the meter fills again with the \"extra\" color");
@@ -109,6 +110,19 @@ public class DonationsCommands implements CommandExecutor
 			sendMessage(sender, "Placing \"need <color>\" on an empty line sets the empty color");
 			sendMessage(sender, "Placing \"has <color>\" on an empty line sets the filled color");
 			sendMessage(sender, "Placing \"extra <color>\" on an empty line sets the extra color");
+			return true;
+		}
+		
+		if (arg.equals("signmeterhelp") && advancedPermissions)
+		{
+			sendMessage(sender, ChatColor.BLUE.toString()+"-----------Creating Sign Meters-----------");
+			sendMessage(sender, ChatColor.BLUE.toString()+"-----------------------------------------");
+			sendMessage(sender, "Sign Meters are created by placing text on a sign");
+			sendMessage(sender, "[have] is replaced by the current donation value");
+			sendMessage(sender, "[need] is replaced by the remaining donations required");
+			sendMessage(sender, "[extr] is replaced by the donations beyond the goal");
+			sendMessage(sender, "[goal] is replaced by the goal");
+			sendMessage(sender, "[perc] is replaced by the percent of the goal");
 			return true;
 		}
 		
