@@ -12,7 +12,7 @@ import org.bukkit.entity.Player;
 public class DonationsCommands implements CommandExecutor
 {
 	private DonationMeter plugin;
-	private boolean advancedPermissions, canNotify;
+	private boolean advancedPermissions, canNotify, isPlayer;
 	public DonationsCommands(DonationMeter plugin)
 	{
 		this.plugin=plugin;
@@ -20,8 +20,17 @@ public class DonationsCommands implements CommandExecutor
 
 	public boolean onCommand(CommandSender sender, Command command, String label, String[] args)
 	{
-		advancedPermissions = DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.admin");
-		canNotify = DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.notify");
+		isPlayer = sender instanceof Player;
+		if (isPlayer)
+		{
+			advancedPermissions = plugin.opPermissions ? sender.isOp() : DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.admin");
+			canNotify = plugin.opPermissions || DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.notify");
+		}
+		else
+		{
+			advancedPermissions = true;
+			canNotify = false;
+		}
 
 		switch(args.length)
 		{
@@ -37,9 +46,9 @@ public class DonationsCommands implements CommandExecutor
 	public boolean info(CommandSender sender, Command command)
 	{
 		if (DonationMeter.currentDonations<DonationMeter.requiredDonations)
-			sender.sendMessage(ChatColor.BLUE.toString()+"Donation Status: "+DonationMeter.currentDonations+" out of "+DonationMeter.requiredDonations+" "+DonationMeter.currency+String.format(" donated. (%3.1f%%)", (double)DonationMeter.currentDonations/(double)DonationMeter.requiredDonations*100d));
+			sendMessage(sender, ChatColor.BLUE.toString()+"Donation Status: "+DonationMeter.currentDonations+" out of "+DonationMeter.requiredDonations+" "+DonationMeter.currency+String.format(" donated. (%3.1f%%)", (double)DonationMeter.currentDonations/(double)DonationMeter.requiredDonations*100d));
 		else
-			sender.sendMessage(ChatColor.GREEN.toString()+"Donation Status: Complete! All "+DonationMeter.requiredDonations+" "+DonationMeter.currency+" with "+(DonationMeter.currentDonations-DonationMeter.requiredDonations)+" "+DonationMeter.currency+" of Surplus!");
+			sendMessage(sender, ChatColor.GREEN.toString()+"Donation Status: Complete! All "+DonationMeter.requiredDonations+" "+DonationMeter.currency+" with "+(DonationMeter.currentDonations-DonationMeter.requiredDonations)+" "+DonationMeter.currency+" of Surplus!");
 		printTimeTill(sender);
 		return true;
 	}
@@ -53,53 +62,53 @@ public class DonationsCommands implements CommandExecutor
 			String out=ChatColor.BLUE.toString()+"Current "+DonationMeter.vipName+"s "+ChatColor.GREEN.toString();
 			for (String player:plugin.vips)
 				out+=player+", ";
-			sender.sendMessage(out.substring(0,out.length()-2));
+			sendMessage(sender, out.substring(0,out.length()-2));
 			return true;
 		}
 		if (arg.equals("help") || arg.equals("?"))
 		{
-			sender.sendMessage(ChatColor.BLUE.toString()+"----------Available Commands----------");
-			sender.sendMessage(ChatColor.BLUE.toString()+"------------------------------------");
-			sender.sendMessage(ChatColor.AQUA.toString()+"/DonationMeter   "+ChatColor.DARK_GREEN.toString()+"*Displays donation info");
-			sender.sendMessage(ChatColor.AQUA.toString()+"/Donations   "+ChatColor.DARK_GREEN.toString()+"*Alias for /DonationMeter");
-			sender.sendMessage(ChatColor.AQUA.toString()+"/DonationMeter VIPs   "+ChatColor.DARK_GREEN.toString()+"*Lists "+DonationMeter.vipName+"s");
-			sender.sendMessage(ChatColor.AQUA.toString()+"/DonationMeter notify <amount>   "+ChatColor.DARK_GREEN.toString()+"*Notifys admin of donation");
+			sendMessage(sender, ChatColor.BLUE.toString()+"----------Available Commands----------");
+			sendMessage(sender, ChatColor.BLUE.toString()+"------------------------------------");
+			sendMessage(sender, ChatColor.AQUA.toString()+"/DonationMeter   "+ChatColor.DARK_GREEN.toString()+"*Displays donation info");
+			sendMessage(sender, ChatColor.AQUA.toString()+"/Donations   "+ChatColor.DARK_GREEN.toString()+"*Alias for /DonationMeter");
+			sendMessage(sender, ChatColor.AQUA.toString()+"/DonationMeter VIPs   "+ChatColor.DARK_GREEN.toString()+"*Lists "+DonationMeter.vipName+"s");
+			sendMessage(sender, ChatColor.AQUA.toString()+"/DonationMeter notify <amount>   "+ChatColor.DARK_GREEN.toString()+"*Notifys admin of donation");
 			if (advancedPermissions)
 			{
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter addVIP <player>   "+ChatColor.DARK_GREEN.toString()+"*Adds a "+DonationMeter.vipName);
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter removeVIP <player>   "+ChatColor.DARK_GREEN.toString()+"*Removes a "+DonationMeter.vipName);
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter addDonation <amount>   "+ChatColor.DARK_GREEN.toString()+"*Adds donation to total");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter setGoal <amount>   "+ChatColor.DARK_GREEN.toString()+"*Sets the monthly goal");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter setCurrency <name>   "+ChatColor.DARK_GREEN.toString()+"*Sets currency used");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter meterHelp   "+ChatColor.DARK_GREEN.toString()+"*Displays meter help");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter pay   "+ChatColor.DARK_GREEN.toString()+"*Pays goal");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter save   "+ChatColor.DARK_GREEN.toString()+"*Saves data");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter time [on/off]   "+ChatColor.DARK_GREEN.toString()+"*Toggles time display");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter notifications   "+ChatColor.DARK_GREEN.toString()+"*Displays notifications");
-				sender.sendMessage(ChatColor.DARK_AQUA.toString()+"/DonationMeter accept <player>  "+ChatColor.DARK_GREEN.toString()+"*Accepts donation notification");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter addVIP <player>   "+ChatColor.DARK_GREEN.toString()+"*Adds a "+DonationMeter.vipName);
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter removeVIP <player>   "+ChatColor.DARK_GREEN.toString()+"*Removes a "+DonationMeter.vipName);
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter addDonation <amount>   "+ChatColor.DARK_GREEN.toString()+"*Adds donation to total");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter setGoal <amount>   "+ChatColor.DARK_GREEN.toString()+"*Sets the monthly goal");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter setCurrency <name>   "+ChatColor.DARK_GREEN.toString()+"*Sets currency used");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter meterHelp   "+ChatColor.DARK_GREEN.toString()+"*Displays meter help");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter pay   "+ChatColor.DARK_GREEN.toString()+"*Pays goal");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter save   "+ChatColor.DARK_GREEN.toString()+"*Saves data");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter time [on/off]   "+ChatColor.DARK_GREEN.toString()+"*Toggles time display");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter notifications   "+ChatColor.DARK_GREEN.toString()+"*Displays notifications");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter accept <player>  "+ChatColor.DARK_GREEN.toString()+"*Accepts donation notification");
 			}
 			if (!DonationMeter.vipName.equals("VIP"))
-				sender.sendMessage(ChatColor.GRAY.toString()+"Note:"+DonationMeter.vipName+" may be substituted for VIP");
+				sendMessage(sender, ChatColor.GRAY.toString()+"Note:"+DonationMeter.vipName+" may be substituted for VIP");
 			return true;
 		}
 		
 		if (arg.equals("meterhelp") && advancedPermissions)
 		{
-			sender.sendMessage(ChatColor.BLUE.toString()+"-----------Creating Meters-----------");
-			sender.sendMessage(ChatColor.BLUE.toString()+"------------------------------------");
-			sender.sendMessage("Meters are built of adjacent wool blocks");
-			sender.sendMessage("Placing a sign starting \"Donations\" onto wool forms a meter");
-			sender.sendMessage("Meters visually display your donation status \"filling\"");
-			sender.sendMessage("The meter starts the \"empty\" color");
-			sender.sendMessage("The meter then fills with the \"has\" color");
-			sender.sendMessage("Once full the meter fills again with the \"extra\" color");
-			sender.sendMessage(ChatColor.BLUE.toString()+"------------------------------------");
-			sender.sendMessage(ChatColor.BLUE.toString()+"------------Modifications------------");
-			sender.sendMessage("Adding -r to the first line reverses the fill direction");
-			sender.sendMessage("Adding -x, -y, or -z controlls the fill axis");
-			sender.sendMessage("Placing \"need <color>\" on an empty line sets the empty color");
-			sender.sendMessage("Placing \"has <color>\" on an empty line sets the filled color");
-			sender.sendMessage("Placing \"extra <color>\" on an empty line sets the extra color");
+			sendMessage(sender, ChatColor.BLUE.toString()+"-----------Creating Meters-----------");
+			sendMessage(sender, ChatColor.BLUE.toString()+"------------------------------------");
+			sendMessage(sender, "Meters are built of adjacent wool blocks");
+			sendMessage(sender, "Placing a sign starting \"Donations\" onto wool forms a meter");
+			sendMessage(sender, "Meters visually display your donation status \"filling\"");
+			sendMessage(sender, "The meter starts the \"empty\" color");
+			sendMessage(sender, "The meter then fills with the \"has\" color");
+			sendMessage(sender, "Once full the meter fills again with the \"extra\" color");
+			sendMessage(sender, ChatColor.BLUE.toString()+"------------------------------------");
+			sendMessage(sender, ChatColor.BLUE.toString()+"------------Modifications------------");
+			sendMessage(sender, "Adding -r to the first line reverses the fill direction");
+			sendMessage(sender, "Adding -x, -y, or -z controlls the fill axis");
+			sendMessage(sender, "Placing \"need <color>\" on an empty line sets the empty color");
+			sendMessage(sender, "Placing \"has <color>\" on an empty line sets the filled color");
+			sendMessage(sender, "Placing \"extra <color>\" on an empty line sets the extra color");
 			return true;
 		}
 		
@@ -109,15 +118,15 @@ public class DonationsCommands implements CommandExecutor
 			if (DonationMeter.currentDonations<0)
 			{
 				DonationMeter.currentDonations=0;
-				sender.sendMessage(ChatColor.RED.toString()+"You're a bit short! Current total set to zero :'(");
+				sendMessage(sender, ChatColor.RED.toString()+"You're a bit short! Current total set to zero :'(");
 			}
 			else if (DonationMeter.currentDonations == 0)
 			{
-				sender.sendMessage(ChatColor.BLUE.toString()+"You have exactly enough money! (You didn't do that on purpose did you?)");
+				sendMessage(sender, ChatColor.BLUE.toString()+"You have exactly enough money! (You didn't do that on purpose did you?)");
 			}
 			else
 			{
-				sender.sendMessage(ChatColor.GREEN.toString()+"You have more than enough money! Theres "+DonationMeter.currentDonations+" "+DonationMeter.currency+" left!");
+				sendMessage(sender, ChatColor.GREEN.toString()+"You have more than enough money! Theres "+DonationMeter.currentDonations+" "+DonationMeter.currency+" left!");
 			}
 			plugin.updateMeters();
 			return true;
@@ -125,30 +134,37 @@ public class DonationsCommands implements CommandExecutor
 		if (arg.equals("save") && advancedPermissions)
 		{
 			plugin.saveAll();
-			sender.sendMessage(ChatColor.BLUE.toString()+"Data Saved!");
+			sendMessage(sender, ChatColor.BLUE.toString()+"Data Saved!");
 			return true;
 		}
 		if ((arg.equals("showtime") || arg.equals("time")) && advancedPermissions)
 		{
 			String active = plugin.showTime ? ChatColor.RED.toString()+"Off" : ChatColor.GREEN.toString()+"On";
-			sender.sendMessage("Time till bill toggled. ("+active+")");
+			sendMessage(sender, "Time till bill toggled. ("+active+")");
 			plugin.showTime = !plugin.showTime;
 			return true;
 		}
-		if ((arg.equals("notifications") || arg.equals("notification") || arg.equals("notify")) && advancedPermissions)
+		if (arg.equals("notifications") || arg.equals("notification") || arg.equals("notify"))
 		{
-			if (plugin.notificationList.size()==0)
+			if (advancedPermissions)
 			{
-				sender.sendMessage(ChatColor.BLUE.toString()+"No notifications!");
+				if (plugin.notificationList.size()==0)
+				{
+					sendMessage(sender, ChatColor.BLUE.toString()+"No notifications!");
+					return true;
+				}
+				sendMessage(sender, ChatColor.GREEN.toString()+"-----Donation Notifications-----");
+				sendMessage(sender, ChatColor.GREEN.toString()+"----------------------------");
+				for (String player: plugin.notificationList.keySet())
+				{
+					sendMessage(sender, player+" claims a donation of "+plugin.notificationList.get(player)+" "+DonationMeter.currency);
+				}
 				return true;
 			}
-			sender.sendMessage(ChatColor.GREEN.toString()+"-----Donation Notifications-----");
-			sender.sendMessage(ChatColor.GREEN.toString()+"----------------------------");
-			for (String player: plugin.notificationList.keySet())
+			else
 			{
-				sender.sendMessage(player+" claims a donation of "+plugin.notificationList.get(player)+" "+DonationMeter.currency);
+				sendMessage(sender, ChatColor.RED.toString() + "Insert a donation amount!");
 			}
-			return true;
 		}
 		return false;
 	}
@@ -162,11 +178,11 @@ public class DonationsCommands implements CommandExecutor
 			if (!plugin.vips.contains(args[1]))
 			{
 				plugin.vips.add(args[1]);
-				sender.sendMessage(ChatColor.GREEN.toString()+args[1]+" added to "+DonationMeter.vipName+" list.");
+				sendMessage(sender, ChatColor.GREEN.toString()+args[1]+" added to "+DonationMeter.vipName+" list.");
 			}
 			else
 			{
-				sender.sendMessage(ChatColor.BLUE.toString()+args[1]+" is already on the "+DonationMeter.vipName+" list!");
+				sendMessage(sender, ChatColor.BLUE.toString()+args[1]+" is already on the "+DonationMeter.vipName+" list!");
 			}
 			return true;
 		}
@@ -174,10 +190,10 @@ public class DonationsCommands implements CommandExecutor
 		{
 			if (plugin.vips.remove(args[1]))
 			{
-				sender.sendMessage(ChatColor.BLUE.toString()+args[1]+" removed from "+DonationMeter.vipName+" list.");
+				sendMessage(sender, ChatColor.BLUE.toString()+args[1]+" removed from "+DonationMeter.vipName+" list.");
 				return true;
 			}
-			sender.sendMessage(ChatColor.RED.toString()+DonationMeter.vipName+" not found. Check your spelling and capitalization!");
+			sendMessage(sender, ChatColor.RED.toString()+DonationMeter.vipName+" not found. Check your spelling and capitalization!");
 			return false;
 		}
 		if ((args[0].equals("adddonation") || args[0].equals("donation") || args[0].equals("donate") || args[0].equals("add")) && advancedPermissions)
@@ -186,14 +202,14 @@ public class DonationsCommands implements CommandExecutor
 				Short donation = Short.parseShort(args[1]);
 				DonationMeter.currentDonations+=donation;
 				if (donation<0)
-					sender.sendMessage(ChatColor.BLUE.toString()+"Negative donations? That sucks... "+DonationMeter.currentDonations+" "+DonationMeter.currency+" remaining.");
+					sendMessage(sender, ChatColor.BLUE.toString()+"Negative donations? That sucks... "+DonationMeter.currentDonations+" "+DonationMeter.currency+" remaining.");
 				else
-					sender.sendMessage(ChatColor.GREEN.toString()+"Donation added. You are at "+DonationMeter.currentDonations+" "+DonationMeter.currency+".");
+					sendMessage(sender, ChatColor.GREEN.toString()+"Donation added. You are at "+DonationMeter.currentDonations+" "+DonationMeter.currency+".");
 				plugin.updateMeters();
 				return true;
 			} catch (NumberFormatException e)
 			{
-				sender.sendMessage(ChatColor.RED.toString()+"Invalid number");
+				sendMessage(sender, ChatColor.RED.toString()+"Invalid number");
 				return false;
 			}
 		}
@@ -204,32 +220,32 @@ public class DonationsCommands implements CommandExecutor
 				amount = Short.parseShort(args[1]);
 			} catch (NumberFormatException e)
 			{
-				sender.sendMessage(ChatColor.RED.toString()+"Invalid number");
+				sendMessage(sender, ChatColor.RED.toString()+"Invalid number");
 				return false;
 			}
 			if (amount>=0)
 			{
 				DonationMeter.requiredDonations=amount;
-				sender.sendMessage(ChatColor.BLUE.toString()+"Goal set to "+amount);
+				sendMessage(sender, ChatColor.BLUE.toString()+"Goal set to "+amount);
 				plugin.updateMeters();
 				return true;
 			}
 			else
 			{
-				sender.sendMessage(ChatColor.RED.toString()+"Negative goals indicate self esteem issues.");
-				sender.sendMessage(ChatColor.RED.toString()+"Goal not set");
+				sendMessage(sender, ChatColor.RED.toString()+"Negative goals indicate self esteem issues.");
+				sendMessage(sender, ChatColor.RED.toString()+"Goal not set");
 				return false;
 			}
 		}
 		if ((args[0].equals("currency") || args[0].equals("setcurrency")) && advancedPermissions)
 		{
 			DonationMeter.currency=args[1];
-			sender.sendMessage(ChatColor.BLUE.toString()+"Now tracking donations in "+args[1]+"!");
+			sendMessage(sender, ChatColor.BLUE.toString()+"Now tracking donations in "+args[1]+"!");
 			return true;
 		}
 		if ((args[0].equals("setvipname") || args[0].equals("vipname")) && advancedPermissions)
 		{
-			sender.sendMessage(ChatColor.BLUE.toString()+DonationMeter.vipName+"s are now called "+args[1]+"s!");
+			sendMessage(sender, ChatColor.BLUE.toString()+DonationMeter.vipName+"s are now called "+args[1]+"s!");
 			DonationMeter.vipName=args[1];
 			return true;
 		}
@@ -238,13 +254,13 @@ public class DonationsCommands implements CommandExecutor
 			args[1] = args[1].toLowerCase();
 			if (args[1].equals("on") || args[1].equals("true") || args[1].equals("show"))
 			{
-				sender.sendMessage("Time till bill is now "+ChatColor.GREEN.toString()+"On.");
+				sendMessage(sender, "Time till bill is now "+ChatColor.GREEN.toString()+"On.");
 				plugin.showTime = true;
 				return true;
 			}
 			if (args[1].equals("off") || args[1].equals("false") || args[1].equals("hide"))
 			{
-				sender.sendMessage("Time till bill is now "+ChatColor.RED.toString()+"Off.");
+				sendMessage(sender, "Time till bill is now "+ChatColor.RED.toString()+"Off.");
 				plugin.showTime = false;
 				return true;
 			}
@@ -256,24 +272,32 @@ public class DonationsCommands implements CommandExecutor
 				DonationMeter.currentDonations+=plugin.notificationList.get(args[1]);
 				if (!plugin.vips.contains(args[1]))
 					plugin.vips.add(args[1]);
-				sender.sendMessage(ChatColor.GREEN.toString()+"Donation accepted! "+plugin.notificationList.get(args[1])+" "+DonationMeter.currency+" added to total, "+args[1]+" is now a "+DonationMeter.vipName+"!");
+				sendMessage(sender, ChatColor.GREEN.toString()+"Donation accepted! "+plugin.notificationList.get(args[1])+" "+DonationMeter.currency+" added to total, "+args[1]+" is now a "+DonationMeter.vipName+"!");
 				plugin.notificationList.remove(args[1]);
 				plugin.updateMeters();
 				return true;
 			}
-			sender.sendMessage("No notifications from that player!");
+			sendMessage(sender, "No notifications from that player!");
 		}
 		if (args[0].equals("notify") && canNotify)
 		{
-			try
+			if (isPlayer)
 			{
-				plugin.addNotification(Short.parseShort(args[1]), ((Player)sender).getName());
-				sender.sendMessage(ChatColor.GREEN.toString()+"Notification of donation sent!");
-				return true;
-			}
-			catch (Exception e)
-			{
-				sender.sendMessage(ChatColor.RED.toString()+"Invalid number");
+				try
+				{
+					plugin.addNotification(Short.parseShort(args[1]), ((Player)sender).getName());
+					sendMessage(sender, ChatColor.GREEN.toString()+"Notification of donation sent!");
+					for(Player player: plugin.getServer().getOnlinePlayers())
+					{
+						if (plugin.opPermissions ? sender.isOp() : DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.admin"))
+							player.sendMessage(player.getName() + " has claimed a donation of "+plugin.notificationList.get(player.getName())+" "+DonationMeter.currency);
+					}
+					return true;
+				}
+				catch (NumberFormatException e)
+				{
+					sendMessage(sender, ChatColor.RED.toString()+"Invalid number");
+				}
 			}
 		}
 		return false;
@@ -283,6 +307,14 @@ public class DonationsCommands implements CommandExecutor
 	public  boolean threeArgs(CommandSender sender, Command command, String[] args)
 	{
 		return false;
+	}
+
+	private void sendMessage(CommandSender sender, String message)
+	{
+		if (isPlayer)
+			sender.sendMessage(message);
+		else
+			sender.sendMessage(ChatColor.stripColor(message));
 	}
 
 	public void printTimeTill(CommandSender sender)
@@ -300,7 +332,7 @@ public class DonationsCommands implements CommandExecutor
 			hoursTill++;
 		if (hoursTill==0)
 			daysTill++;
-		sender.sendMessage(ChatColor.YELLOW.toString()+daysTill+" Days, "+hoursTill+" Hours, "+minutesTill+" Minutes, and "+secondsTill+" Seconds till server bill.");
+		sendMessage(sender, ChatColor.YELLOW.toString()+daysTill+" Days, "+hoursTill+" Hours, "+minutesTill+" Minutes, and "+secondsTill+" Seconds till server bill.");
 	}
 
 	public int getMonthLength(Calendar date)

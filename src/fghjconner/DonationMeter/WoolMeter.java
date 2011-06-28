@@ -4,11 +4,13 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
+import org.bukkit.ChatColor;
 import org.bukkit.DyeColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
+import org.bukkit.event.block.SignChangeEvent;
 
-public class WoolMeter implements Serializable
+public class WoolMeter implements Serializable , Meter
 {
 	/**
 	 * 
@@ -20,7 +22,7 @@ public class WoolMeter implements Serializable
 	private boolean reversed;
 	private byte hasColor = DyeColor.GREEN.getData(),neededColor = DyeColor.WHITE.getData(),surplusColor = DyeColor.BLUE.getData();
 	
-	public WoolMeter(Block source, boolean backwards)
+	public WoolMeter(Block source, boolean backwards, SignChangeEvent event)
 	{
 		maxX = maxY = maxZ = -Double.MAX_VALUE;
 		minX = minY = minZ = Double.MAX_VALUE;
@@ -45,7 +47,75 @@ public class WoolMeter implements Serializable
 			//if Y is greatest
 			greatestDir=1;
 		}
+
+		if (event.getLine(0).toLowerCase().contains("-x"))
+			setDir((byte)0);
+		if (event.getLine(0).toLowerCase().contains("-y"))
+			setDir((byte)1);
+		if (event.getLine(0).toLowerCase().contains("-z"))
+			setDir((byte)2);
+		handleLine(event.getLine(1));
+		handleLine(event.getLine(2));
+		handleLine(event.getLine(3));
+		event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"WoolMeter Created!");
 		update();
+	}
+	
+	public void handleLine(String line)
+	{
+		line=line.toLowerCase();
+		if (line.contains("has"))
+			setColor(line,(byte) 2);
+		else if (line.contains("needs") || line.contains("need"))
+			setColor(line,(byte)1);
+		else if (line.contains("surplus") || line.contains("extra"))
+			setColor(line,(byte)3);
+	}
+	
+	public void setColor(String arg, byte mode)
+	{
+		byte setColor;
+		if (arg.contains("black"))
+			setColor = (DyeColor.BLACK.getData());
+		else if (arg.contains("red"))
+			setColor = (DyeColor.RED.getData());
+		else if (arg.contains("dark green") || arg.contains("green"))
+			setColor = (DyeColor.GREEN.getData());
+		else if (arg.contains("brown"))
+			setColor = (DyeColor.BROWN.getData());
+		else if (arg.contains("blue"))
+			setColor = (DyeColor.BLUE.getData());
+		else if (arg.contains("purple"))
+			setColor = (DyeColor.PURPLE.getData());
+		else if (arg.contains("cyan"))
+			setColor = (DyeColor.CYAN.getData());
+		else if (arg.contains("light gray") || arg.contains("silver"))
+			setColor = (DyeColor.SILVER.getData());
+		else if (arg.contains("gray"))
+			setColor = (DyeColor.GRAY.getData());
+		else if (arg.contains("pink"))
+			setColor = (DyeColor.PINK.getData());
+		else if (arg.contains("light green") || arg.contains("lime"))
+			setColor = (DyeColor.LIME.getData());
+		else if (arg.contains("yellow"))
+			setColor = (DyeColor.YELLOW.getData());
+		else if (arg.contains("light blue"))
+			setColor = (DyeColor.LIGHT_BLUE.getData());
+		else if (arg.contains("magenta"))
+			setColor = (DyeColor.MAGENTA.getData());
+		else if (arg.contains("orange"))
+			setColor = (DyeColor.ORANGE.getData());
+		else if (arg.contains("white"))
+			setColor = (DyeColor.WHITE.getData());
+		else
+			return;
+		
+		switch (mode)
+		{
+		case 1: setNeedColor(setColor);	break;
+		case 2: setHasColor(setColor);	break;
+		case 3: setSurplusColor(setColor);	break;
+		}
 	}
 	
 	private void addBlock(SimpleLoc loc)

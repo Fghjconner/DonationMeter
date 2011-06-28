@@ -12,7 +12,7 @@ public class DMEntityListener extends EntityListener
 	}
 	public void onEntityExplode(EntityExplodeEvent event)
 	{
-		for (WoolMeter meter: plugin.meterList.values())
+		for (Meter meter: plugin.meterList)
 		{
 			if (meter.has(event.blockList()))
 				meter.destroy();

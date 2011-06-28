@@ -29,15 +29,17 @@ public class DonationMeter extends JavaPlugin
 	private final HashMap<Player, Boolean> debugees = new HashMap<Player, Boolean>();
 	private final DMBlockListener BlockListener = new DMBlockListener(this);
 	private final DMEntityListener EntityListener = new DMEntityListener(this);
-	protected static PermissionHandler permissionHandler;
+	private final DMServerListener ServerListener = new DMServerListener(this);
+	private final DMPlayerListener PlayerListener = new DMPlayerListener(this);
+	public static PermissionHandler permissionHandler;
 	private Logger log = Logger.getLogger("Minecraft");
-	protected HashMap<SimpleLoc, WoolMeter> meterList;
-	protected HashMap<String, Short> notificationList;
-	protected ArrayList<String> vips;
+	public ArrayList<Meter> meterList;
+	public HashMap<String, Short> notificationList;
+	public ArrayList<String> vips;
 	public static short requiredDonations, currentDonations;
 	public static String currency, vipName;
-	public boolean showTime, explosionVulnerable;
-	protected static Server server;
+	public boolean showTime, explosionVulnerable, opPermissions;
+	public static Server server;
 
 	//file IO stuff
 	static String mainDirectory = "plugins/DonationMeter"; //sets the main directory for easy reference
@@ -61,8 +63,10 @@ public class DonationMeter extends JavaPlugin
 
 		//registers main events
 		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Normal, this);
-		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Normal, this);
-		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Monitor, this);
+		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLUGIN_ENABLE, ServerListener, Event.Priority.Monitor, this);
+		pm.registerEvent(Event.Type.PLAYER_JOIN, PlayerListener, Event.Priority.Monitor, this);
 
 		//registers command
 		PluginCommand command = getCommand("DonationMeter");
@@ -104,7 +108,7 @@ public class DonationMeter extends JavaPlugin
 		{
 			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(mainDirectory + File.separator + "Meters.dat"));
 			Object result = ois.readObject();
-			meterList = (HashMap<SimpleLoc,WoolMeter>)result;
+			meterList = (ArrayList<Meter>)result;
 			ois.close();
 		}
 		catch (IOException e)
@@ -191,7 +195,7 @@ public class DonationMeter extends JavaPlugin
 		{
 			Meters.createNewFile();
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Meters.dat"));
-			oos.writeObject(new HashMap<SimpleLoc, WoolMeter>());
+			oos.writeObject(new ArrayList<Meter>());
 			oos.flush();
 			oos.close();
 		} catch (IOException e)
@@ -296,23 +300,23 @@ public class DonationMeter extends JavaPlugin
 	private void setupPermissions()
 	{
 		Plugin permissionsPlugin = this.getServer().getPluginManager().getPlugin("Permissions");
-
 		if (DonationMeter.permissionHandler == null) {
 			if (permissionsPlugin != null)
 			{
 				DonationMeter.permissionHandler = ((Permissions) permissionsPlugin).getHandler();
+				opPermissions = true;
 			} else
 			{
 				log.info("Permission system not detected, defaulting to OP");
-				//DonationMeter.permissionHandler = new OPPermissions(); 
+				opPermissions = true;
 			}
 		}
 	}
 
-	//updates wool meters
+	//updates meters
 	public void updateMeters()
 	{
-		for (WoolMeter meter: meterList.values())
+		for (Meter meter: meterList)
 		{
 			meter.update();
 		}
