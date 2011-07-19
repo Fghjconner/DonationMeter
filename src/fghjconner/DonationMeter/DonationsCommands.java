@@ -87,6 +87,7 @@ public class DonationsCommands implements CommandExecutor
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter time [on/off]   "+ChatColor.DARK_GREEN.toString()+"*Toggles time display");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter notifications   "+ChatColor.DARK_GREEN.toString()+"*Displays notifications");
 				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter accept <player>  "+ChatColor.DARK_GREEN.toString()+"*Accepts donation notification");
+				sendMessage(sender, ChatColor.DARK_AQUA.toString()+"/DonationMeter update  "+ChatColor.DARK_GREEN.toString()+"*Updates all meters");
 			}
 			if (!DonationMeter.vipName.equals("VIP"))
 				sendMessage(sender, ChatColor.GRAY.toString()+"Note:"+DonationMeter.vipName+" may be substituted for VIP");
@@ -179,6 +180,10 @@ public class DonationsCommands implements CommandExecutor
 			{
 				sendMessage(sender, ChatColor.RED.toString() + "Insert a donation amount!");
 			}
+		}
+		if (arg.equals("update") && advancedPermissions)
+		{
+			plugin.updateMeters();
 		}
 		return false;
 	}

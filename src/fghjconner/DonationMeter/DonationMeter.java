@@ -36,6 +36,7 @@ public class DonationMeter extends JavaPlugin
 	public ArrayList<Meter> meterList;
 	public HashMap<String, Short> notificationList;
 	public ArrayList<String> vips;
+	public static DonationMeter plugin;
 	public static short requiredDonations, currentDonations;
 	public static String currency, vipName;
 	public boolean showTime, explosionVulnerable, opPermissions;
@@ -51,12 +52,14 @@ public class DonationMeter extends JavaPlugin
 	public void onDisable()
 	{
 		saveAll();
+		plugin = null;
 		PluginDescriptionFile pdfFile = this.getDescription();
 		log.info( pdfFile.getName() + " version " + pdfFile.getVersion() + " disabled!" );
 	}
 
 	public void onEnable()
 	{
+		plugin = this;
 		server = getServer();
 		setupPermissions();
 		PluginManager pm = this.getServer().getPluginManager();
@@ -70,10 +73,8 @@ public class DonationMeter extends JavaPlugin
 
 		//registers command
 		PluginCommand command = getCommand("DonationMeter");
-		PluginCommand commandAlias = getCommand("Donations");
 
 		command.setExecutor(new DonationsCommands(this));
-		commandAlias.setExecutor(new DonationsCommands(this));
 
 		PluginDescriptionFile pdfFile = this.getDescription();
 		log.info( pdfFile.getName() + " version " + pdfFile.getVersion() + " enabled!" );
@@ -83,18 +84,16 @@ public class DonationMeter extends JavaPlugin
 		new File(mainDirectory).mkdir();
 		if(!Meters.exists())
 			createMetersFile();
-		else
-			loadMeters();
 
 		if(!Donations.exists())
 			createDonationsFile();
-		else
-			loadDonations();
 		
 		if(!Notifications.exists())
 			createNotificationsFile();
-		else
-			loadNotifications();
+		
+		loadMeters();
+		loadNotifications();
+		loadDonations();
 		
 		//registers entity explode if explosion vulnerable is true
 		if (explosionVulnerable)
@@ -143,17 +142,18 @@ public class DonationMeter extends JavaPlugin
 
 	private void loadDonations()
 	{
+		
 		try
 		{
 			FileInputStream in = new FileInputStream(Donations);
 			prop.load(in);
-			requiredDonations = Short.parseShort(prop.getProperty("requiredDonations"));
-			currentDonations = Short.parseShort(prop.getProperty("currentDonations"));
-			currency = prop.getProperty("currency");
-			showTime = prop.getProperty("displayTime").equals("true");
-			vipName = prop.getProperty("VIPname");
-			explosionVulnerable = Boolean.parseBoolean(prop.getProperty("explosionVulnerable"));
-			loadVIPs(prop.getProperty("VIPs"));
+			requiredDonations = Short.parseShort(prop.getProperty("requiredDonations","0"));
+			currentDonations = Short.parseShort(prop.getProperty("currentDonations","0"));
+			currency = prop.getProperty("currency","dollars");
+			vipName = prop.getProperty("VIPname","VIP");
+			explosionVulnerable = prop.getProperty("explosionVulnerable","true").equals("true");
+			showTime = prop.getProperty("displayTime","false").equals("true");
+			loadVIPs(prop.getProperty("VIPs",""));
 			in.close();
 		}
 		catch (IOException e)
@@ -179,14 +179,13 @@ public class DonationMeter extends JavaPlugin
 		{
 			Notifications.createNewFile();
 			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Notifications.dat"));
-			oos.writeObject(new HashMap<String, Short>());
+			oos.writeObject(new HashMap<String,Short>());
 			oos.flush();
 			oos.close();
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		loadNotifications();
 	}
 	
 	private void createMetersFile()
@@ -202,7 +201,6 @@ public class DonationMeter extends JavaPlugin
 		{
 			e.printStackTrace();
 		}
-		loadMeters();
 	}
 
 	private void createDonationsFile()
@@ -210,22 +208,10 @@ public class DonationMeter extends JavaPlugin
 		try
 		{
 			Donations.createNewFile();
-			FileOutputStream out = new FileOutputStream(Donations);
-			prop.put("requiredDonations", "1");
-			prop.put("currentDonations", "0");
-			prop.put("currency", "dollars");
-			prop.put("displayTime", "true");
-			prop.put("VIPname", "VIP");
-			prop.put("VIPs", "");
-			prop.put("explosionVulnerable", "false");
-			prop.store(out,"DonationMeters Config");
-			out.flush();
-			out.close();
 		} catch (IOException e)
 		{
 			e.printStackTrace();
 		}
-		loadDonations();
 	}
 
 	private void saveDonationsFile()
@@ -233,13 +219,13 @@ public class DonationMeter extends JavaPlugin
 		try
 		{
 			FileOutputStream out = new FileOutputStream(Donations);
-			prop.put("requiredDonations", Short.toString(requiredDonations));
-			prop.put("currentDonations", Short.toString(currentDonations));
-			prop.put("currency", currency);
-			prop.put("displayTime", Boolean.toString(showTime));
-			prop.put("VIPname", vipName);
-			prop.put("VIPs", vipsToString());
-			prop.put("explosionVulnerable", Boolean.toString(explosionVulnerable));
+			prop.setProperty("requiredDonations", Short.toString(requiredDonations));
+			prop.setProperty("currentDonations", Short.toString(currentDonations));
+			prop.setProperty("currency", currency);
+			prop.setProperty("displayTime", Boolean.toString(showTime));
+			prop.setProperty("VIPname", vipName);
+			prop.setProperty("VIPs", vipsToString());
+			prop.setProperty("explosionVulnerable", Boolean.toString(explosionVulnerable));
 			prop.store(out, "DonationMeters Config");
 			out.flush();
 			out.close();
@@ -316,9 +302,10 @@ public class DonationMeter extends JavaPlugin
 	//updates meters
 	public void updateMeters()
 	{
-		for (Meter meter: meterList)
+		for (int i=0;i<meterList.size();i++)
 		{
-			meter.update();
+			if (!meterList.get(i).update())
+				i--;
 		}
 		saveMetersFile();
 	}

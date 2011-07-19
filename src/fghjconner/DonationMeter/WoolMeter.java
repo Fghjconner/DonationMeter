@@ -1,6 +1,5 @@
 package fghjconner.DonationMeter;
 
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collection;
 
@@ -10,12 +9,12 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.SignChangeEvent;
 
-public class WoolMeter implements Serializable , Meter
+public class WoolMeter implements Meter
 {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -2473439837674633403L;
+	private static final long serialVersionUID = 1424688872564251842L;
 	private ArrayList<SimpleLoc> locList;
 	private double maxX,minX,maxY,minY,maxZ,minZ,distX,distY,distZ;
 	private byte greatestDir;
@@ -146,7 +145,7 @@ public class WoolMeter implements Serializable , Meter
 		addBlock(new SimpleLoc(loc.getWorld(),loc.getX(),loc.getY(),loc.getZ()-1));
 	}
 
-	public void update()
+	public boolean update()
 	{
 		switch(greatestDir)
 		{
@@ -154,6 +153,7 @@ public class WoolMeter implements Serializable , Meter
 		case 1: setByY();	break;
 		case 2: setByZ();	break;
 		}
+		return true;
 	}
 	
 	private void setByX()
@@ -296,6 +296,7 @@ public class WoolMeter implements Serializable , Meter
 		{
 			(loc.getBlock()).setData((byte) 0);
 		}
+		DonationMeter.plugin.meterList.remove(this);
 	}
 	
 	public boolean has(SimpleLoc loc)

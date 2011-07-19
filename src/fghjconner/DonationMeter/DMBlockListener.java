@@ -34,7 +34,6 @@ public class DMBlockListener extends BlockListener
 		for (Meter marked:affected)
 		{
 			marked.destroy();
-			plugin.meterList.remove(marked);
 			event.getPlayer().sendMessage(ChatColor.RED.toString()+"Meter destroyed");
 		}
 	}
@@ -53,7 +52,6 @@ public class DMBlockListener extends BlockListener
 		for (Meter marked:affected)
 		{
 			marked.destroy();
-			plugin.meterList.remove(marked);
 		}
 	}
 
@@ -69,35 +67,23 @@ public class DMBlockListener extends BlockListener
 		{
 			reverse = event.getLine(0).toLowerCase().contains("-r");
 			plugin.meterList.add(new WoolMeter(base,reverse,event));
+			return;
 		}
+		Boolean isSignMeter = false;
 		for (int i = 0; i < 4; i++)
 		{
 			String line = event.getLine(i).toLowerCase();
-			if (line.contains("[have]"))
+			if (line.contains("[have]") || line.contains("[need]") || line.contains("[extr]") || line.contains("[goal]") || line.contains("[perc]"))
 			{
-				plugin.meterList.add(new SignMeter(loc, i, line.indexOf("[have]"),SignMeter.MONEY_HAVE, event));
-				event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
+				isSignMeter = true;
 			}
-			if (line.contains("[need]"))
-			{
-				plugin.meterList.add(new SignMeter(loc, i, line.indexOf("[need]"),SignMeter.MONEY_NEED, event));
-				event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
-			}
-			if (line.contains("[extr]"))
-			{
-				plugin.meterList.add(new SignMeter(loc, i, line.indexOf("[extr]"),SignMeter.MONEY_EXTRA, event));
-				event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
-			}
-			if (line.contains("[goal]"))
-			{
-				plugin.meterList.add(new SignMeter(loc, i, line.indexOf("[goal]"),SignMeter.GOAL, event));
-				event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
-			}
-			if (line.contains("[perc]"))
-			{
-				plugin.meterList.add(new SignMeter(loc, i, line.indexOf("[perc]"),SignMeter.PERCENT, event));
-				event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
-			}
+		}
+		if (isSignMeter)
+		{
+			String[] lines = new String[4];
+			System.arraycopy(event.getLines(), 0, lines, 0, 4);
+			plugin.meterList.add(new SignMeter(loc, lines));
+			event.getPlayer().sendMessage(ChatColor.GREEN.toString()+"SignMeter Created!");
 		}
 	}
 

@@ -1,50 +1,61 @@
 package fghjconner.DonationMeter;
 
-import java.io.Serializable;
 import java.util.Collection;
 
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
-import org.bukkit.event.block.SignChangeEvent;
 
-public class SignMeter implements Meter,Serializable
+public class SignMeter implements Meter
 {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -7034297413333927291L;
+	private static final long serialVersionUID = -4230504763249614293L;
 	private SimpleLoc loc;
-	private int line, index, type, valueLength;
-	public static final int MONEY_HAVE=0,MONEY_NEED=1,MONEY_EXTRA=2,GOAL=3,PERCENT=4;
+	private String[] base;
 	
-	public SignMeter (SimpleLoc location, int lineNum, int lineIndex, int typeNum, SignChangeEvent event)
+	public SignMeter (SimpleLoc location, String[] lines)
 	{
 		loc = location;
-		line = lineNum;
-		index = lineIndex;
-		type = typeNum;
-		valueLength = 6;
+		base = lines;
+		System.out.println("base[0]: "+base[0]);
 	}
 
 	@Override
-	public void update()
+	public boolean update()
 	{
-		Sign sign = (Sign) (loc.getBlock().getState());
+		Sign sign;
 		try
 		{
-			sign.setLine(line, sign.getLine(line).substring(0,index) + value()+ sign.getLine(line).substring(index+valueLength));
+			sign=(Sign) loc.getBlock().getState();
 		}
-		catch (StringIndexOutOfBoundsException e)
+		catch (ClassCastException e)
 		{
-			sign.setLine(line, sign.getLine(line).substring(0,index) + value());
+			destroy();
+			return false;
 		}
-		valueLength = value().length();
+		String[] newLines = new String[4];
+		System.arraycopy(base, 0, newLines, 0, 4);
+		for (int i = 0; i<4; i++)
+		{
+			newLines[i] = newLines[i].replaceAll("\\[have\\]", Short.toString(DonationMeter.currentDonations));
+			newLines[i] = newLines[i].replaceAll("\\[goal\\]", Short.toString(DonationMeter.requiredDonations));
+			newLines[i] = newLines[i].replaceAll("\\[perc\\]", moneyPercent());
+			newLines[i] = newLines[i].replaceAll("\\[need\\]", moneyNeeded());
+			newLines[i] = newLines[i].replaceAll("\\[extr\\]", moneyExtra());
+		}
+		for (int i=0;i<4;i++)
+		{
+			sign.setLine(i, newLines[i]);
+		}
 		sign.update();
+		return true;
 	}
 
 	@Override
 	public void destroy()
 	{
+		DonationMeter.plugin.meterList.remove(this);
 	}
 
 	@Override
@@ -57,18 +68,6 @@ public class SignMeter implements Meter,Serializable
 	public boolean has(Collection<Block> blockList)
 	{
 		return false;
-	}
-	
-	public String value()
-	{
-		switch (type)
-		{
-		case MONEY_HAVE: return Integer.toString(DonationMeter.currentDonations);
-		case MONEY_NEED: return moneyNeeded();
-		case MONEY_EXTRA: return moneyExtra();
-		case PERCENT: return String.format("%.2f",(double)DonationMeter.currentDonations/(double)DonationMeter.requiredDonations*100)+"%";
-		default: return "error";
-		}
 	}
 
 	private String moneyExtra()
@@ -87,5 +86,12 @@ public class SignMeter implements Meter,Serializable
 		if (have > goal)
 			return "0";
 		return Integer.toString(goal - have);
+	}
+	
+	private String moneyPercent()
+	{
+		double goal = DonationMeter.requiredDonations;
+		double have = DonationMeter.currentDonations;
+		return String.format("%.0f", (have/goal)*100);
 	}
 }
