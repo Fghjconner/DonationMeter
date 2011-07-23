@@ -37,7 +37,6 @@ public class DonationsCommands implements CommandExecutor
 		case 0: return info(sender, command);
 		case 1: return oneArg(sender, command, args[0]);
 		case 2: return twoArgs(sender, command, args);
-		case 3: return threeArgs(sender, command, args);
 		}
 		return false;
 	}
@@ -321,12 +320,6 @@ public class DonationsCommands implements CommandExecutor
 				}
 			}
 		}
-		return false;
-	}
-
-	//three arg responses
-	public  boolean threeArgs(CommandSender sender, Command command, String[] args)
-	{
 		return false;
 	}
 
