@@ -184,6 +184,8 @@ public class DonationsCommands implements CommandExecutor
 		if (arg.equals("update") && advancedPermissions)
 		{
 			plugin.updateMeters();
+			sendMessage(sender, ChatColor.GREEN.toString() + "Meters updated!");
+			return true;
 		}
 		return false;
 	}

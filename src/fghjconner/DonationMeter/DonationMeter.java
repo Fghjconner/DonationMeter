@@ -65,7 +65,7 @@ public class DonationMeter extends JavaPlugin
 		PluginManager pm = this.getServer().getPluginManager();
 
 		//registers main events
-		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Normal, this);
+		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLUGIN_ENABLE, ServerListener, Event.Priority.Monitor, this);

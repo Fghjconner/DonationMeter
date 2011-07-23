@@ -57,6 +57,8 @@ public class DMBlockListener extends BlockListener
 
 	public void onSignChange(SignChangeEvent event)
 	{
+		if (event.isCancelled())
+			return;
 		Boolean reverse;
 		Block sign = event.getBlock();
 		SimpleLoc loc = SimpleLoc.simplify(sign.getLocation());
