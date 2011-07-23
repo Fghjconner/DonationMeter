@@ -18,7 +18,6 @@ public class SignMeter implements Meter
 	{
 		loc = location;
 		base = lines;
-		System.out.println("base[0]: "+base[0]);
 	}
 
 	@Override
