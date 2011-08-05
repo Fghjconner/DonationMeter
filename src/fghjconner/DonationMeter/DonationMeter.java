@@ -118,6 +118,11 @@ public class DonationMeter extends JavaPlugin
 		{
 			e.printStackTrace();
 		}
+		if (meterList == null)
+		{
+			createMetersFile();
+			loadMeters();
+		}
 	}
 	
 	@SuppressWarnings("unchecked")
@@ -137,6 +142,11 @@ public class DonationMeter extends JavaPlugin
 		catch (ClassNotFoundException e)
 		{
 			e.printStackTrace();
+		}
+		if (notificationList == null)
+		{
+			createMetersFile();
+			loadMeters();
 		}
 	}
 
