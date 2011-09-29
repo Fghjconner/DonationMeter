@@ -16,22 +16,16 @@ import org.bukkit.Server;
 import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import com.nijiko.permissions.PermissionHandler;
-import com.nijikokun.bukkit.Permissions.Permissions;
 
 public class DonationMeter extends JavaPlugin
 {
 	private final HashMap<Player, Boolean> debugees = new HashMap<Player, Boolean>();
 	private final DMBlockListener BlockListener = new DMBlockListener(this);
 	private final DMEntityListener EntityListener = new DMEntityListener(this);
-	private final DMServerListener ServerListener = new DMServerListener(this);
 	private final DMPlayerListener PlayerListener = new DMPlayerListener(this);
-	public static PermissionHandler permissionHandler;
 	private Logger log = Logger.getLogger("Minecraft");
 	public ArrayList<Meter> meterList;
 	public HashMap<String, Short> notificationList;
@@ -61,14 +55,12 @@ public class DonationMeter extends JavaPlugin
 	{
 		plugin = this;
 		server = getServer();
-		setupPermissions();
 		PluginManager pm = this.getServer().getPluginManager();
 
 		//registers main events
 		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Monitor, this);
-		pm.registerEvent(Event.Type.PLUGIN_ENABLE, ServerListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_JOIN, PlayerListener, Event.Priority.Monitor, this);
 
 		//registers command
@@ -291,22 +283,6 @@ public class DonationMeter extends JavaPlugin
 	public void setDebugging(final Player player, final boolean value)
 	{
 		debugees.put(player, value);
-	}
-
-	private void setupPermissions()
-	{
-		Plugin permissionsPlugin = this.getServer().getPluginManager().getPlugin("Permissions");
-		if (DonationMeter.permissionHandler == null) {
-			if (permissionsPlugin != null)
-			{
-				DonationMeter.permissionHandler = ((Permissions) permissionsPlugin).getHandler();
-				opPermissions = true;
-			} else
-			{
-				log.info("Permission system not detected, defaulting to OP");
-				opPermissions = true;
-			}
-		}
 	}
 
 	//updates meters

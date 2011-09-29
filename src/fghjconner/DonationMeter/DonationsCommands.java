@@ -23,8 +23,8 @@ public class DonationsCommands implements CommandExecutor
 		isPlayer = sender instanceof Player;
 		if (isPlayer)
 		{
-			advancedPermissions = plugin.opPermissions ? sender.isOp() : DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.admin");
-			canNotify = plugin.opPermissions || DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.notify");
+			advancedPermissions = plugin.opPermissions ? sender.isOp() : ((Player)sender).hasPermission("DonationMeter.admin");
+			canNotify = plugin.opPermissions || ((Player)sender).hasPermission("DonationMeter.notify");
 		}
 		else
 		{
@@ -309,7 +309,7 @@ public class DonationsCommands implements CommandExecutor
 					sendMessage(sender, ChatColor.GREEN.toString()+"Notification of donation sent!");
 					for(Player player: plugin.getServer().getOnlinePlayers())
 					{
-						if (plugin.opPermissions ? sender.isOp() : DonationMeter.permissionHandler.has((Player)sender, "DonationMeter.admin"))
+						if (plugin.opPermissions ? sender.isOp() : ((Player)sender).hasPermission("DonationMeter.admin"))
 							player.sendMessage(player.getName() + " has claimed a donation of "+plugin.notificationList.get(player.getName())+" "+DonationMeter.currency);
 					}
 					return true;

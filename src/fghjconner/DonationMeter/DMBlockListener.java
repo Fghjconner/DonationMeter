@@ -62,8 +62,8 @@ public class DMBlockListener extends BlockListener
 		Boolean reverse;
 		Block sign = event.getBlock();
 		SimpleLoc loc = SimpleLoc.simplify(sign.getLocation());
-		Block base = sign.getFace(((Sign)sign.getState().getData()).getAttachedFace());
-		if (plugin.opPermissions ? !event.getPlayer().isOp() : !DonationMeter.permissionHandler.has(event.getPlayer(), "DonationMeter.admin"))
+		Block base = sign.getRelative(((Sign)sign.getState().getData()).getAttachedFace());
+		if (plugin.opPermissions ? !event.getPlayer().isOp() : event.getPlayer().hasPermission("DonationMeter.admin"))
 			return;
 		if ((event.getLine(0).toLowerCase().contains("dmeter") || event.getLine(0).toLowerCase().contains("donations")) && base.getType().equals(Material.WOOL) && !isMeter(base))
 		{
