@@ -18,7 +18,7 @@ public class DMPlayerListener extends PlayerListener
 	public void onPlayerJoin(PlayerJoinEvent event)
 	{
 		Player player = event.getPlayer();
-		if ((plugin.opPermissions ? player.isOp() : player.hasPermission("DonationMeter.admin")) && plugin.notificationList.size() > 0)
+		if ((plugin.hasPermission(player, "DonationMeter.admin")) && plugin.notificationMap.size() > 0)
 		{
 			player.sendMessage(ChatColor.GREEN.toString() + "Outstanding Donation Notifications!");
 			player.sendMessage(ChatColor.BLUE.toString() + "/Donations notifications" + ChatColor.GREEN.toString() + " for more info");

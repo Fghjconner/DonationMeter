@@ -4,6 +4,7 @@ package fghjconner.DonationMeter;
 import java.util.ArrayList;
 
 import org.bukkit.ChatColor;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -22,7 +23,7 @@ public class DMBlockListener extends BlockListener
 
 	public void onBlockBreak(BlockBreakEvent event)
 	{
-		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
+		Location loc = event.getBlock().getLocation();
 		ArrayList<Meter> affected = new ArrayList<Meter>(); 
 		for (Meter meter:plugin.meterList)
 		{
@@ -40,7 +41,7 @@ public class DMBlockListener extends BlockListener
 
 	public void onBlockBurn(BlockBurnEvent event)
 	{
-		SimpleLoc loc = SimpleLoc.simplify(event.getBlock().getLocation());
+		Location loc = event.getBlock().getLocation();
 		ArrayList<Meter> affected = new ArrayList<Meter>(); 
 		for (Meter meter:plugin.meterList)
 		{
@@ -61,9 +62,9 @@ public class DMBlockListener extends BlockListener
 			return;
 		Boolean reverse;
 		Block sign = event.getBlock();
-		SimpleLoc loc = SimpleLoc.simplify(sign.getLocation());
+		Location loc = sign.getLocation();
 		Block base = sign.getRelative(((Sign)sign.getState().getData()).getAttachedFace());
-		if (plugin.opPermissions ? !event.getPlayer().isOp() : event.getPlayer().hasPermission("DonationMeter.admin"))
+		if (!plugin.hasPermission(event.getPlayer(), "DonationMeter.admin"))
 			return;
 		if ((event.getLine(0).toLowerCase().contains("dmeter") || event.getLine(0).toLowerCase().contains("donations")) && base.getType().equals(Material.WOOL) && !isMeter(base))
 		{
@@ -93,7 +94,7 @@ public class DMBlockListener extends BlockListener
 	{
 		for (Meter meter:plugin.meterList)
 		{
-			if (meter.has(SimpleLoc.simplify(base.getLocation())))
+			if (meter.has(base.getLocation()))
 				return true;
 		}
 		return false;

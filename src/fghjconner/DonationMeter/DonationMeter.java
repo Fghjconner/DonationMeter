@@ -1,14 +1,7 @@
 package fghjconner.DonationMeter;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Properties;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
@@ -19,16 +12,17 @@ import org.bukkit.event.Event;
 import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.config.Configuration;
+import org.bukkit.util.config.ConfigurationNode;
 
 public class DonationMeter extends JavaPlugin
 {
-	private final HashMap<Player, Boolean> debugees = new HashMap<Player, Boolean>();
 	private final DMBlockListener BlockListener = new DMBlockListener(this);
 	private final DMEntityListener EntityListener = new DMEntityListener(this);
 	private final DMPlayerListener PlayerListener = new DMPlayerListener(this);
 	private Logger log = Logger.getLogger("Minecraft");
 	public ArrayList<Meter> meterList;
-	public HashMap<String, Short> notificationList;
+	public HashMap<String, Short> notificationMap;
 	public ArrayList<String> vips;
 	public static DonationMeter plugin;
 	public static short requiredDonations, currentDonations;
@@ -36,278 +30,160 @@ public class DonationMeter extends JavaPlugin
 	public boolean showTime, explosionVulnerable, opPermissions;
 	public static Server server;
 
-	//file IO stuff
-	static String mainDirectory = "plugins/DonationMeter"; //sets the main directory for easy reference
-	static File Meters = new File(mainDirectory + File.separator + "Meters.dat");
-	static File Donations = new File(mainDirectory + File.separator + "Donations.dat");
-	static File Notifications = new File(mainDirectory + File.separator + "Notifications.dat");
-	static Properties prop = new Properties(); //creates a new properties file
-	
 	public void onDisable()
 	{
 		saveAll();
 		plugin = null;
 		PluginDescriptionFile pdfFile = this.getDescription();
-		log.info( pdfFile.getName() + " version " + pdfFile.getVersion() + " disabled!" );
+		log.info(pdfFile.getName() + " version " + pdfFile.getVersion() + " disabled!");
 	}
 
 	public void onEnable()
 	{
 		plugin = this;
 		server = getServer();
-		PluginManager pm = this.getServer().getPluginManager();
+		PluginManager pm = server.getPluginManager();
 
-		//registers main events
+		// registers main events
 		pm.registerEvent(Event.Type.SIGN_CHANGE, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BREAK, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.BLOCK_BURN, BlockListener, Event.Priority.Monitor, this);
 		pm.registerEvent(Event.Type.PLAYER_JOIN, PlayerListener, Event.Priority.Monitor, this);
 
-		//registers command
+		// registers command
 		PluginCommand command = getCommand("DonationMeter");
 
 		command.setExecutor(new DonationsCommands(this));
 
 		PluginDescriptionFile pdfFile = this.getDescription();
-		log.info( pdfFile.getName() + " version " + pdfFile.getVersion() + " enabled!" );
+		log.info(pdfFile.getName() + " version " + pdfFile.getVersion() + " enabled!");
 
-
-		//loads properties
-		new File(mainDirectory).mkdir();
-		if(!Meters.exists())
-			createMetersFile();
-
-		if(!Donations.exists())
-			createDonationsFile();
-		
-		if(!Notifications.exists())
-			createNotificationsFile();
-		
+		loadSettings();
 		loadMeters();
 		loadNotifications();
-		loadDonations();
-		
-		//registers entity explode if explosion vulnerable is true
+
+		// registers entity explode if explosion vulnerable is true
 		if (explosionVulnerable)
 			pm.registerEvent(Event.Type.ENTITY_EXPLODE, EntityListener, Event.Priority.Normal, this);
 	}
 
-	@SuppressWarnings("unchecked")
 	private void loadMeters()
 	{
-		try
+		System.out.println("Loading Meters...");
+		Configuration config = getConfiguration();
+		meterList = new ArrayList<Meter>();
+		for (ConfigurationNode node : config.getNodes("Meters").values())
 		{
-			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(mainDirectory + File.separator + "Meters.dat"));
-			Object result = ois.readObject();
-			meterList = (ArrayList<Meter>)result;
-			ois.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		catch (ClassNotFoundException e)
-		{
-			e.printStackTrace();
-		}
-		if (meterList == null)
-		{
-			createMetersFile();
-			loadMeters();
-		}
-	}
-	
-	@SuppressWarnings("unchecked")
-	private void loadNotifications()
-	{
-		try
-		{
-			ObjectInputStream ois = new ObjectInputStream(new FileInputStream(mainDirectory + File.separator + "Notifications.dat"));
-			Object result = ois.readObject();
-			notificationList = (HashMap<String, Short>)result;
-			ois.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-		catch (ClassNotFoundException e)
-		{
-			e.printStackTrace();
-		}
-		if (notificationList == null)
-		{
-			createMetersFile();
-			loadMeters();
+			System.out.println(node.getString("Type"));
+			if (node.getString("Type").equals("WoolMeter"))
+				meterList.add(new WoolMeter(node));
+			else if (node.getString("Type").equals("SignMeter"))
+				meterList.add(new SignMeter(node));
 		}
 	}
 
-	private void loadDonations()
+	private void loadNotifications()
 	{
-		
-		try
-		{
-			FileInputStream in = new FileInputStream(Donations);
-			prop.load(in);
-			requiredDonations = Short.parseShort(prop.getProperty("requiredDonations","0"));
-			currentDonations = Short.parseShort(prop.getProperty("currentDonations","0"));
-			currency = prop.getProperty("currency","dollars");
-			vipName = prop.getProperty("VIPname","VIP");
-			explosionVulnerable = prop.getProperty("explosionVulnerable","true").equals("true");
-			showTime = prop.getProperty("displayTime","false").equals("true");
-			loadVIPs(prop.getProperty("VIPs",""));
-			in.close();
-		}
-		catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		Configuration config = getConfiguration();
+		notificationMap = new HashMap<String, Short>();
+		ConfigurationNode node = config.getNode("Notifications");
+		if (node != null)
+			for (String key : node.getKeys())
+				notificationMap.put(key, (short) config.getInt("Notifications." + key, 0));
+	}
+
+	private void loadSettings()
+	{
+		Configuration config = getConfiguration();
+		opPermissions = config.getBoolean("OpPermissions", false);
+		currency = config.getString("Currency", "dollars");
+		explosionVulnerable = config.getBoolean("ExplosionVulnerable", false);
+		currentDonations = (short) config.getInt("CurrentDonations", 0);
+		vipName = config.getString("VIPname", "VIP");
+		showTime = config.getBoolean("DisplayTime", true);
+		requiredDonations = (short) config.getInt("DonationGoal", 100);
+		loadVIPs(config.getString("VIPs", ""));
 	}
 
 	private void loadVIPs(String vipString)
 	{
 		vips = new ArrayList<String>();
 		Scanner vipList = new Scanner(vipString);
-		vipList.useDelimiter(",");
+		vipList.useDelimiter("[\\[\\],]");
 		while (vipList.hasNext())
 		{
 			vips.add(vipList.next());
 		}
 	}
 
-	private void createNotificationsFile()
+	private void saveSettings()
 	{
-		try
-		{
-			Notifications.createNewFile();
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Notifications.dat"));
-			oos.writeObject(new HashMap<String,Short>());
-			oos.flush();
-			oos.close();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-	
-	private void createMetersFile()
-	{
-		try
-		{
-			Meters.createNewFile();
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Meters.dat"));
-			oos.writeObject(new ArrayList<Meter>());
-			oos.flush();
-			oos.close();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		Configuration config = getConfiguration();
+		config.setProperty("OpPermissions", opPermissions);
+		config.setProperty("Currency", currency);
+		config.setProperty("ExplosionVulnerable", explosionVulnerable);
+		config.setProperty("CurrentDonations", currentDonations);
+		config.setProperty("VIPname", vipName);
+		config.setProperty("DisplayTime", showTime);
+		config.setProperty("DonationGoal", requiredDonations);
+		config.setProperty("VIPs", vips.toString());
 	}
 
-	private void createDonationsFile()
+	private void saveMeters()
 	{
-		try
-		{
-			Donations.createNewFile();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		}
+		Configuration config = getConfiguration();
+		for (int i = 0; i < meterList.size(); i++)
+			config.setProperty("Meters." + i, meterList.get(i).toConfig());
 	}
 
-	private void saveDonationsFile()
-	{
-		try
-		{
-			FileOutputStream out = new FileOutputStream(Donations);
-			prop.setProperty("requiredDonations", Short.toString(requiredDonations));
-			prop.setProperty("currentDonations", Short.toString(currentDonations));
-			prop.setProperty("currency", currency);
-			prop.setProperty("displayTime", Boolean.toString(showTime));
-			prop.setProperty("VIPname", vipName);
-			prop.setProperty("VIPs", vipsToString());
-			prop.setProperty("explosionVulnerable", Boolean.toString(explosionVulnerable));
-			prop.store(out, "DonationMeters Config");
-			out.flush();
-			out.close();
-		} catch (IOException e)
-		{
-			e.printStackTrace();
-		}
-	}
-
-	private String vipsToString()
-	{
-		String out = "";
-		for (String name:vips)
-		{
-			out+=","+name;
-		}
-		return out;
-	}
-
-	private void saveMetersFile()
-	{
-		try{
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Meters.dat"));
-			oos.writeObject(meterList);
-			oos.flush();
-			oos.close();
-		}catch(Exception e){
-			e.printStackTrace();
-		}
-	}
-	
 	private void saveNotificationsFile()
 	{
-		try{
-			ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(mainDirectory + File.separator + "Notifications.dat"));
-			oos.writeObject(notificationList);
-			oos.flush();
-			oos.close();
-		}catch(Exception e){
-			e.printStackTrace();
-		}
+		Configuration config = getConfiguration();
+		for (String player : notificationMap.keySet())
+			config.setProperty(player, notificationMap.get(player));
 	}
 
-	public boolean isDebugging(final Player player)
-	{
-		if (debugees.containsKey(player)) {
-			return debugees.get(player);
-		} else {
-			return false;
-		}
-	}
-
-	public void setDebugging(final Player player, final boolean value)
-	{
-		debugees.put(player, value);
-	}
-
-	//updates meters
+	// updates meters
 	public void updateMeters()
 	{
-		for (int i=0;i<meterList.size();i++)
+		for (int i = 0; i < meterList.size(); i++)
 		{
 			if (!meterList.get(i).update())
 				i--;
 		}
-		saveMetersFile();
+		saveMeters();
 	}
 
 	public void saveAll()
 	{
-		saveDonationsFile();
-		saveMetersFile();
+		saveSettings();
+		saveMeters();
 		saveNotificationsFile();
+		getConfiguration().save();
 	}
 
-	public void addNotification(short amount,String player)
+	public void addNotification(short amount, String player)
 	{
-		if (notificationList.containsKey(player))
-			notificationList.put(player, (short)(notificationList.get(player)+amount));
+		if (notificationMap.containsKey(player))
+			notificationMap.put(player, (short) (notificationMap.get(player) + amount));
 		else
-			notificationList.put(player, amount);
+			notificationMap.put(player, amount);
+	}
+
+	public boolean hasPermission(Player player, String permission)
+	{
+		if (opPermissions)
+			return player.isOp();
+		if (player.hasPermission(permission))
+			return true;
+		String[] parts = permission.split(".");
+		String subPerm = "";
+		for (int i = 0; i < parts.length - 1; i++)
+		{
+			subPerm += parts[i] + ".";
+			if (player.hasPermission(subPerm + "*"))
+				return true;
+		}
+		return false;
 	}
 }

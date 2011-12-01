@@ -1,23 +1,54 @@
 package fghjconner.DonationMeter;
 
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
+import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.Sign;
+import org.bukkit.util.config.ConfigurationNode;
 
 public class SignMeter implements Meter
 {
 	/**
 	 * 
 	 */
-	private static final long serialVersionUID = -4230504763249614293L;
-	private SimpleLoc loc;
+	private Location loc;
 	private String[] base;
 	
-	public SignMeter (SimpleLoc location, String[] lines)
+	public SignMeter (Location location, String[] lines)
 	{
 		loc = location;
 		base = lines;
+	}
+	
+	public SignMeter (ConfigurationNode node)
+	{
+		World world = DonationMeter.plugin.getServer().getWorld(node.getString("Loc.World","World"));
+		loc = new Location(world,node.getInt("Loc.X",0),node.getInt("Loc.Y",0),node.getInt("Loc.Z",0));
+		
+		base = new String[4];
+		for (int i=0; i<4; i++)
+			base[i] = node.getString("Line"+i, "");
+	}
+	
+	@Override
+	public Map<String,Object> toConfig()
+	{
+		HashMap<String,Object> map = new HashMap<String,Object>();
+		map.put("Type", "SignMeter");
+		HashMap<String,Object> locMap = new HashMap<String,Object>();
+		locMap.put("World", loc.getWorld().getName());
+		locMap.put("X", loc.getX());
+		locMap.put("Y", loc.getY());
+		locMap.put("Z", loc.getZ());
+		map.put("Loc", locMap);
+		
+		for (int i=0; i<4; i++)
+			map.put("Line"+i, base[i]);
+		return map;
 	}
 
 	@Override
@@ -58,7 +89,7 @@ public class SignMeter implements Meter
 	}
 
 	@Override
-	public boolean has(SimpleLoc location)
+	public boolean has(Location location)
 	{
 		return location.equals(loc);
 	}
